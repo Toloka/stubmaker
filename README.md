@@ -18,7 +18,7 @@ stubmaker --help
 Usage example
 -------------
 
-Imagine that you have a package with a following structure:
+Imagine you have a package with the following structure:
 
 ```
 package
@@ -27,9 +27,7 @@ package
 
 Contents of `__init__.py`:
 ```python
-__all__ = [
-    'sleep_for'
-]
+__all__ = ['sleep_for']
 from time import sleep
 
 
@@ -58,6 +56,7 @@ Success: no issues found in 1 source file
 
 Stubs exist to help you! Stubmaker will provide stubs for your package so that its users can find the error using mypy:
 ```bash
+>> stubmaker --module-root package --src-root <path to package>/package --output-dir <path to package>/package
 >> mypy __main__.py
 
 __main__.py:3: error: Too many arguments for "sleep_for"

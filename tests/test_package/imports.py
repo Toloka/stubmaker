@@ -14,6 +14,7 @@ from pathlib import Path
 from functools import *
 
 from . classes import SimpleClass, InheritedClass
+from . import docstrings
 from . docstrings import module_function
 from .enums import *
 
@@ -38,7 +39,8 @@ class NotUsedInAllClass:
     pass
 
 
-class UsedByUsedInAllClass:
+# should appear in stubs. also should cause docstrings module import
+class UsedByUsedInAllClass(docstrings.SimpleClass):
     pass
 
 

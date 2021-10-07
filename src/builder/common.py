@@ -1,3 +1,4 @@
+import inspect
 from typing import Generator, Optional
 
 URL_REGEXP = r'https?://\S+'
@@ -41,9 +42,9 @@ class Node:
 
 class BaseRepresentation:
 
-    def __init__(self, node: Node, ast: 'ASTBuilder'):
+    def __init__(self, node: Node, tree: 'RepresentationsTreeBuilder'):
         self.node = node
-        self.ast = ast
+        self.tree = tree
 
     def __iter__(self):
         raise NotImplementedError
@@ -87,10 +88,10 @@ class BaseDefinition(BaseRepresentation):
         raise NotImplementedError
 
     def get_member_rep(self, member_name: str):
-        return self.ast.get_definition(self.node.get_member(member_name))
+        return self.tree.get_definition(self.node.get_member(member_name))
 
 
-class BaseASTBuilder:
+class BaseRepresentationsTreeBuilder:
 
     # Helper methods
 
@@ -130,3 +131,12 @@ class BaseASTBuilder:
 
     def get_literal_for_value(self, obj: Node) -> BaseLiteral:
         raise NotImplementedError
+
+
+def get_annotations(obj):
+    if inspect.isclass(obj):
+        annotations = {}
+        for parent in obj.__mro__[::-1]:
+            annotations.update(getattr(parent, '__annotations__', {}))
+        return annotations
+    return getattr(obj, '__annotations__', {})

@@ -1,31 +1,29 @@
 import inspect
 
-from stubmaker.builder.common import BaseDefinition, Node, BaseASTBuilder
+from stubmaker.builder.common import BaseDefinition, Node, BaseRepresentationsTreeBuilder
 
 
 class FunctionDef(BaseDefinition):
 
-    # TODO: support statimethods and classmethods
-
-    def __init__(self, node: Node, ast: BaseASTBuilder):
-        super().__init__(node, ast)
+    def __init__(self, node: Node, tree: BaseRepresentationsTreeBuilder):
+        super().__init__(node, tree)
 
         signature = inspect.signature(self.obj)
 
         params = []
         for param in signature.parameters.values():
             if param.annotation is not inspect.Parameter.empty:
-                param = param.replace(annotation=ast.get_literal(Node(self.namespace, None, param.annotation)))
+                param = param.replace(annotation=tree.get_literal(Node(self.namespace, None, param.annotation)))
             if param.default is not inspect.Parameter.empty:
-                param = param.replace(default=ast.get_literal(Node(self.name, None, param.default)))
+                param = param.replace(default=tree.get_literal(Node(self.name, None, param.default)))
             params.append(param)
 
         return_annotation = signature.return_annotation
         if return_annotation is not inspect.Parameter.empty:
-            return_annotation = ast.get_literal(Node(self.namespace, None, return_annotation))
+            return_annotation = tree.get_literal(Node(self.namespace, None, return_annotation))
 
         self.signature = signature.replace(parameters=params, return_annotation=return_annotation)
-        self.docstring = ast.get_docstring(node)
+        self.docstring = tree.get_docstring(node)
 
     def __iter__(self):
         if self.docstring:

@@ -12,7 +12,7 @@ import typing
 
 
 class CustomType:
-    forward_reference_attr: typing.Optional[CustomType]
+    forward_reference_attr: typing.Optional['CustomType']
     attribute_2: int
 
 

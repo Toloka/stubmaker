@@ -2,10 +2,12 @@ __all__ = [
     'wrap_function_signature',
     'indent',
     'replace_representations_in_signature',
+    'get_common_namespace_prefix',
 ]
 import inspect
 import textwrap
 
+from itertools import zip_longest
 from typing import List, Tuple
 
 
@@ -98,3 +100,14 @@ def replace_representations_in_signature(signature: inspect.Signature, viewer):
         return_annotation = get_view_adapter(return_annotation, viewer)
 
     return signature.replace(parameters=parameters, return_annotation=return_annotation)
+
+
+def get_common_namespace_prefix(first_namespace, second_namespace):
+    first_namespace = first_namespace.split('.')
+    second_namespace = second_namespace.split('.')
+    common_tokens = []
+    for first_token, second_token in zip_longest(first_namespace, second_namespace):
+        if first_token != second_token:
+            break
+        common_tokens.append(first_token)
+    return '.'.join([*common_tokens, ''])

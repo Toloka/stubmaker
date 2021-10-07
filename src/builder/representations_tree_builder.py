@@ -4,12 +4,12 @@ import inspect
 from enum import Enum
 from typing import Optional, TypeVar
 
-from stubmaker.builder.common import BaseDefinition, BaseLiteral, BaseASTBuilder, Node
+from stubmaker.builder.common import BaseDefinition, BaseLiteral, BaseRepresentationsTreeBuilder, Node
 from stubmaker.builder.definitions import AttributeAnnotationDef, AttributeDef, ClassDef, DocumentationDef, FunctionDef, ModuleDef, StaticMethodDef, ClassMethodDef, EnumDef
 from stubmaker.builder.literals import ReferenceLiteral, TypeHintLiteral, TypeVarLiteral, ValueLiteral, EnumValueLiteral
 
 
-class ASTBuilder(BaseASTBuilder):
+class RepresentationsTreeBuilder(BaseRepresentationsTreeBuilder):
 
     def __init__(self, module_name, module):
         self.module_name = module_name

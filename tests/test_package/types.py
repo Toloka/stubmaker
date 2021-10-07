@@ -12,27 +12,6 @@ __all__ = [
 import typing
 import pathlib
 
-# TODO: TypeVar support
-# T = typing.TypeVar('T')
-# T_bounded = typing.TypeVar('T_bounded', bound=int)
-# T_covariant = typing.TypeVar('T_covariant', covariant=True)
-# T_contravariant = typing.TypeVar('T_contravariant', contravariant=True)
-#
-#
-# class GenericClass:
-#     def __init__(self, arg_1: T, arg_2: T_bounded, arg_3: T_covariant, arg_4: T_contravariant):
-#         pass
-#
-#
-# GenericClassAlias = GenericClass
-#
-#
-# class GenericClassWithTypeVarOverlap:
-#     T = typing.TypeVar('T')
-#
-#     def some_func(self, arg_1: T):
-#         pass
-
 
 class CustomType:
     forward_reference_attr: typing.Optional['CustomType']

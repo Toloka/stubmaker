@@ -5,7 +5,9 @@ __all__ = [
     'attribute_of_inner_type_with_value',
     'attribute_of_builtin_type',
     'attribute_of_builtin_type_with_value',
-    'type_alias_attribute'
+    'type_alias_attribute',
+    'attribute_of_nested_type',
+    'attribute_of_nested_type_with_value',
 ]
 
 
@@ -41,3 +43,13 @@ hidden_attribute_with_shared_builtin_type: str
 hidden_attribute_with_shared_type: InnerType
 hidden_attribute_with_shared_builtin_type_with_value: str = ''
 hidden_attribute_with_shared_type_with_value: InnerType = InnerType()
+
+
+# should be rendered in stubs because NestedType is used
+class ClassWithNestedType:
+    class NestedType:
+        pass
+
+
+attribute_of_nested_type: ClassWithNestedType.NestedType
+attribute_of_nested_type_with_value: ClassWithNestedType.NestedType = ClassWithNestedType.NestedType()

@@ -7,6 +7,7 @@ __all__ = [
     'SubpackageClass',
     'module',
     'classes',
+    'external_typevar'
 ]
 import typing
 
@@ -27,3 +28,6 @@ class InnerAnnotationType:
 
 def get_implicit_annotation():
     return typing.Optional[InnerAnnotationType]
+
+
+external_typevar = typing.TypeVar('external_typevar')

@@ -7,6 +7,8 @@ __all__ = [
     'attribute_of_builtin_type',
     'attribute_of_builtin_type_with_value',
     'type_alias_attribute',
+    'attribute_of_nested_type',
+    'attribute_of_nested_type_with_value',
 ]
 class InnerType:
     ...
@@ -22,6 +24,15 @@ class InnerType2:
 
 type_alias_attribute = InnerType2
 
+class ClassWithNestedType:
+    class NestedType:
+        ...
+
+
+attribute_of_nested_type_with_value: ClassWithNestedType.NestedType
+
 attribute_of_inner_type: InnerType
 
 attribute_of_builtin_type: str
+
+attribute_of_nested_type: ClassWithNestedType.NestedType

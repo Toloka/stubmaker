@@ -1,7 +1,7 @@
 import os
 from argparse import ArgumentParser
 
-from stubmaker.builder.ast_builder import ASTBuilder
+from stubmaker.builder.representations_tree_builder import RepresentationsTreeBuilder
 from stubmaker.builder import override_module_import_path, traverse_modules
 from stubmaker.viewers.stub_viewer import StubViewer
 
@@ -32,7 +32,7 @@ def main():
         # Actually creating a file
         print(f'{module_name} -> {dst_path}')
         with open(dst_path, 'w') as stub_flo:
-            builder = ASTBuilder(module_name, module)
+            builder = RepresentationsTreeBuilder(module_name, module)
 
             viewer = StubViewer()
             module_view = viewer.view(builder.module_rep)

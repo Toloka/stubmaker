@@ -1,22 +1,22 @@
 import inspect
-from typing import get_type_hints
+import typing
 
-from stubmaker.builder.common import Node, BaseASTBuilder, BaseDefinition
+from stubmaker.builder.common import Node, BaseRepresentationsTreeBuilder, BaseDefinition, get_annotations
 
 
 class ClassDef(BaseDefinition):
 
     # TODO:  support properties
 
-    def __init__(self, node: Node, ast: BaseASTBuilder):
-        super().__init__(node, ast)
+    def __init__(self, node: Node, tree: BaseRepresentationsTreeBuilder):
+        super().__init__(node, tree)
 
-        self.docstring = self.ast.get_docstring(self.node)
+        self.docstring = self.tree.get_docstring(self.node)
 
         self.bases = []
         if self.obj.__bases__ != (object,):
             for base in self.node.obj.__bases__:
-                self.bases.append(self.ast.get_literal(Node(self.namespace, None, base)))
+                self.bases.append(self.tree.get_literal(Node(self.namespace, None, base)))
 
         self.members = {}
         for member_name in self.get_public_member_names():
@@ -30,26 +30,28 @@ class ClassDef(BaseDefinition):
 
             if isinstance(member, staticmethod):
                 node.obj = member.__func__
-                definition = self.ast.get_static_method_definition(node)
+                definition = self.tree.get_static_method_definition(node)
             elif isinstance(member, classmethod):
                 node.obj = member.__func__
-                definition = self.ast.get_class_method_definition(node)
+                definition = self.tree.get_class_method_definition(node)
             elif inspect.isfunction(member):
-                definition = self.ast.get_function_definition(node)
-            elif inspect.isclass(member) and member.__module__ == self.ast.module_name:
-                definition = self.ast.get_class_definition(node)
+                definition = self.tree.get_function_definition(node)
+            elif inspect.isclass(member) and member.__module__ == self.tree.module_name:
+                definition = self.tree.get_class_definition(node)
+            elif isinstance(member, typing.TypeVar):
+                definition = self.tree.get_attribute_definition(node)
             else:
                 continue
-                # definition = self.ast.get_attribute_definition(node)
 
             self.members[member_name] = definition
 
         self.annotations = {}
-        for member_name, annotation in get_type_hints(self.obj).items():
-            self.annotations[member_name] = self.ast.get_attribute_annotation_definition(Node(
+        annotations = get_annotations(self.obj)
+        for member_name, annotation in annotations.items():
+            self.annotations[member_name] = self.tree.get_attribute_annotation_definition(Node(
                 namespace=f'{self.namespace}.{self.name}' if self.namespace else self.name,
                 name=member_name,
-                obj=get_type_hints(self.obj)[member_name],
+                obj=annotations[member_name],
             ))
 
     def __iter__(self):

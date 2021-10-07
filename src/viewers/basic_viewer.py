@@ -5,10 +5,10 @@ __all__ = [
 import enum
 import inspect
 
-from itertools import zip_longest
 from typing import ForwardRef
 
 from stubmaker.viewers.common import ViewerBase, add_inherited_singledispatchmethod
+from stubmaker.viewers.util import get_common_namespace_prefix
 from stubmaker.builder.common import BaseRepresentation
 from stubmaker.builder.definitions import (
     AttributeAnnotationDef,
@@ -58,14 +58,9 @@ class BasicViewer(ViewerBase):
 
     def view_reference_literal(self, reference_lit: ReferenceLiteral):
         if inspect.isclass(reference_lit.obj) or inspect.isfunction(reference_lit.obj):
-            i = 0
-            namespace_tokens = reference_lit.namespace.split('.')
-            qualname_tokens = reference_lit.obj.__qualname__.split('.')
-
-            for i, (namespace_token, qualname_token) in enumerate(zip_longest(namespace_tokens, qualname_tokens)):
-                if namespace_token != qualname_token:
-                    break
-            return '.'.join(qualname_tokens[i:])
+            qualname = reference_lit.obj.__qualname__
+            prefix = get_common_namespace_prefix(reference_lit.namespace, qualname[:qualname.rfind('.')])
+            return qualname[len(prefix):]
 
         return getattr(reference_lit.obj, '__name__', None) or reference_lit.obj._name
 
@@ -79,8 +74,10 @@ class BasicViewer(ViewerBase):
     def view_type_var_literal(self, type_var_lit: TypeVarLiteral):
         covariant_str = ', covariant=True' if self.view(type_var_lit.covariant) == 'True' else ''
         contravariant_str = ', contravariant=True' if self.view(type_var_lit.contravariant) == 'True' else ''
-        bound_str = self.view(type_var_lit.bound)
-        return f'{self.view(type_var_lit.type_var_reference)}({self.view(type_var_lit.type_var_name)}{covariant_str}{contravariant_str}, bound={bound_str})'
+        if type_var_lit.bound.obj is not None:
+            bound_str = self.view(type_var_lit.bound)
+            return f'{self.view(type_var_lit.type_var_reference)}({self.view(type_var_lit.type_var_name)}{covariant_str}{contravariant_str}, bound={bound_str})'
+        return f'{self.view(type_var_lit.type_var_reference)}({self.view(type_var_lit.type_var_name)}{covariant_str}{contravariant_str})'
 
     def view_value_literal(self, value_lit: ValueLiteral):
         if value_lit.obj is None:

@@ -9,6 +9,7 @@ __all__ = [
 ]
 import pathlib
 import test_package.classes
+import test_package.docstrings
 
 from pathlib import Path
 
@@ -19,7 +20,7 @@ class SomeChild(test_package.classes.InheritedClass):
     class_attribute: test_package.classes.SomeType
 
 
-class UsedByUsedInAllClass:
+class UsedByUsedInAllClass(test_package.docstrings.SimpleClass):
     ...
 
 

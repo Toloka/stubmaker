@@ -25,7 +25,7 @@ get_expected_stub = partial(os.path.join, TEST_DIR, 'expected_stubs')
 
 @pytest.fixture(scope='session')
 def get_output_path(tmpdir_factory):
-    """Applies stubmaker and returns restults dir"""
+    """Applies stubmaker and returns results dir"""
     output_path = str(tmpdir_factory.mktemp('output'))
     subprocess.call([
         STUBMAKER_CMD,

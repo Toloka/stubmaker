@@ -2,12 +2,18 @@ __all__ = [
     'StubViewer',
 ]
 import inspect
+import os
 
 from io import StringIO
 
 from stubmaker.viewers.basic_viewer import BasicViewer
 from stubmaker.viewers.common import add_inherited_singledispatchmethod
-from stubmaker.viewers.util import wrap_function_signature, indent, replace_representations_in_signature
+from stubmaker.viewers.util import (
+    wrap_function_signature,
+    indent,
+    replace_representations_in_signature,
+    get_common_namespace_prefix,
+)
 from stubmaker.builder.definitions import (
     AttributeAnnotationDef,
     AttributeDef,
@@ -19,7 +25,8 @@ from stubmaker.builder.definitions import (
     ClassMethodDef,
     StaticMethodDef,
 )
-from stubmaker.builder.literals import ReferenceLiteral
+from stubmaker.builder.literals import ReferenceLiteral, TypeVarLiteral
+from stubmaker.builder.common import BaseDefinition, BaseRepresentation
 
 
 @add_inherited_singledispatchmethod(method_name='view', implementation_prefix='view_')
@@ -29,6 +36,7 @@ class StubViewer(BasicViewer):
         def __init__(self, module_def: ModuleDef, viewer: 'StubViewer'):
             self.module_def = module_def
             self.viewer = viewer
+            self.object_id_to_definition = {}
 
         def __enter__(self):
             self.viewer.module_context = self
@@ -36,15 +44,31 @@ class StubViewer(BasicViewer):
 
         def __exit__(self, exc_type, exc_val, exc_tb):
             self.viewer.module_context = None
+            self.object_id_to_definition.clear()
 
     def view_reference_literal(self, reference_lit: ReferenceLiteral):
         view = super().view_reference_literal(reference_lit)
 
-        obj_module = getattr(reference_lit.obj, '__module__', None)
-
         if not self.module_context.module_def._is_import_necessary(reference_lit.obj):
             return view
-        return f'{obj_module}.{view}'
+        return f'{reference_lit.obj.__module__}.{view}'
+
+    def view_type_var_literal(self, type_var_lit: TypeVarLiteral):
+        # Present name means that TypeVar is used in definition (i.e. T = TypeVar(...))
+        if type_var_lit.node.name:
+            return super().view_type_var_literal(type_var_lit)
+
+        definition = self.module_context.object_id_to_definition.get(type_var_lit.id)
+        if definition:
+            prefix = get_common_namespace_prefix(type_var_lit.node.namespace, definition.namespace)
+            return definition.namespace[len(prefix):] + definition.name
+
+        # consider TypeVar being imported from other module
+        imported_from_module = os.sys.modules[type_var_lit.obj.__module__]
+        name = next(obj_name for obj_name, obj in imported_from_module.__dict__.items() if obj == type_var_lit.obj)
+        if not self.module_context.module_def._is_import_necessary(type_var_lit.obj):
+            return name
+        return f'{type_var_lit.obj.__module__}.{name}'
 
     def view_attribute_annotation_definition(self, attribute_annotation_def: AttributeAnnotationDef):
         return f'{attribute_annotation_def.name}: {self.view(representation=attribute_annotation_def.annotation)}\n'
@@ -116,10 +140,17 @@ class StubViewer(BasicViewer):
         sio.write('\n')
         return sio.getvalue()
 
+    @staticmethod
+    def get_subtree_ids(root_representation: BaseRepresentation):
+        ids = set()
+        for child in root_representation.traverse():
+            ids.add(child.id)
+        return ids
+
     def view_module_definition(self, module_def: ModuleDef):
         sio = StringIO()
 
-        with StubViewer.ModuleContext(module_def, self):
+        with StubViewer.ModuleContext(module_def, self) as ctx:
             # docstring
             if module_def.docstring:
                 sio.write(f'{self.view(module_def.docstring)}\n')
@@ -132,18 +163,30 @@ class StubViewer(BasicViewer):
                 else:
                     sio.write('__all__: list = []\n')
 
-            # traverse to get actually needed objects
+            # traverse to get actually used representations
             used_object_ids = set()
             for representation in module_def:
                 if representation.name != '__all__' and representation.name not in module_def.obj.__all__:
                     continue
 
-                used_object_ids.add(representation.id)
+                used_object_ids.update(self.get_subtree_ids(representation))
+
+            # traverse one more time to add representations that have nested definitions that are used by used
+            # representations.
+            for representation in module_def:
                 for child_rep in representation.traverse():
-                    used_object_ids.add(child_rep.id)
+                    if isinstance(child_rep, BaseDefinition) and child_rep.id in used_object_ids:
+                        used_object_ids.update(self.get_subtree_ids(representation))
+                        break
+
+            # add used TypeVar definitions
+            for representation in module_def.traverse():
+                if isinstance(representation, AttributeDef) and isinstance(representation.value, TypeVarLiteral):
+                    if representation.value.id in used_object_ids:
+                        used_object_ids.add(representation.id)
+                        ctx.object_id_to_definition[representation.value.id] = representation
 
             # imports
-
             imports, from_imports = module_def.get_imports(used_object_ids)
 
             if imports:

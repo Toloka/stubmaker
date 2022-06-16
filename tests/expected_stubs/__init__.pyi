@@ -17,6 +17,7 @@ from test_package.classes import SimpleClass
 from test_package.test_subpackage import module
 from test_package.test_subpackage.module import SubpackageClass
 
+
 def function_without_return_annotation(): ...
 
 

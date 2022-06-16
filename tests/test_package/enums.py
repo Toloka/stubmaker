@@ -7,6 +7,7 @@ __all__ = [
     'EnumSubclassClass',
     'AutoEnum',
     'function_with_enum_value_annotation',
+    'ClassWithNestedEnum',
 ]
 from enum import Enum, unique, EnumMeta, auto, IntEnum
 from time import sleep
@@ -66,3 +67,12 @@ class IntEnumClass(IntEnum):
 # default argument value should appear as IntEnumClass.VALUE_3 in stubs
 def function_with_enum_value_annotation(unit: IntEnumClass = IntEnumClass.VALUE_3):
     pass
+
+
+class ClassWithNestedEnum:
+    class NestedEnum(Enum):
+        VALUE = 1
+
+    # enum_value default value should appear as NestedEnum.VALUE but not ClassWithNestedEnum.NestedEnum.VALUE
+    def __init__(self, enum_value = NestedEnum.VALUE):
+        pass

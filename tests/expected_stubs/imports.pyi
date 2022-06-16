@@ -6,12 +6,19 @@ __all__ = [
     'SomeChild',
     'UsedInAllClass',
     'Path',
+    'join',
+    'splitext',
 ]
 import pathlib
 import test_package.classes
 import test_package.docstrings
 
 from pathlib import Path
+from posixpath import (
+    join,
+    splitext,
+)
+
 
 def function_with_argument_of_type_from_renamed_import(arg: pathlib.Path): ...
 

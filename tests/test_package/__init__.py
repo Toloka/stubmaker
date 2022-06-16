@@ -11,7 +11,7 @@ __all__ = [
 ]
 import typing
 
-# should appear in stubs if from ... import ... form because specified in __all__
+# should appear in stubs in from ... import ... form because specified in __all__
 from .test_subpackage import module
 from .test_subpackage import SubpackageClass
 from .classes import SimpleClass

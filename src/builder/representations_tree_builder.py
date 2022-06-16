@@ -1,19 +1,26 @@
 import enum
 import inspect
-
 from enum import Enum
 from typing import Optional, TypeVar
 
 from stubmaker.builder.common import BaseDefinition, BaseLiteral, BaseRepresentationsTreeBuilder, Node
-from stubmaker.builder.definitions import AttributeAnnotationDef, AttributeDef, ClassDef, DocumentationDef, FunctionDef, ModuleDef, StaticMethodDef, ClassMethodDef, EnumDef
+from stubmaker.builder.definitions import (
+    AttributeAnnotationDef,
+    AttributeDef,
+    ClassDef,
+    MetaclassDef,
+    DocumentationDef,
+    FunctionDef,
+    ModuleDef,
+    StaticMethodDef,
+    ClassMethodDef,
+    EnumDef
+)
 from stubmaker.builder.literals import ReferenceLiteral, TypeHintLiteral, TypeVarLiteral, ValueLiteral, EnumValueLiteral
+from typing_inspect import is_generic_type
 
 
 class RepresentationsTreeBuilder(BaseRepresentationsTreeBuilder):
-
-    def __init__(self, module_name, module):
-        self.module_name = module_name
-        self.module_rep = self.get_module_definition(Node('', '', module))
 
     def __str__(self):
         return str(self.module_rep)
@@ -35,6 +42,13 @@ class RepresentationsTreeBuilder(BaseRepresentationsTreeBuilder):
             return self.get_function_definition(node)
 
         return self.get_attribute_definition(node)
+
+    def map_module_name(self, module_name: str) -> str:
+        prefixes = [(len(key), key) for key in self.modules_aliases_mapping if module_name.startswith(key)]
+        if not prefixes:
+            return module_name
+        longest_prefix = max(prefixes)[1]
+        return self.modules_aliases_mapping[longest_prefix] + module_name[len(longest_prefix):]
 
     # def resolve_value_literal(sel):
 
@@ -66,6 +80,8 @@ class RepresentationsTreeBuilder(BaseRepresentationsTreeBuilder):
         if node.obj.__module__ == self.module_name:
             if issubclass(node.obj, Enum):
                 return EnumDef(node, self)
+            if issubclass(node.obj, type):
+                return MetaclassDef(node, self)
             return ClassDef(node, self)
 
         return self.get_attribute_definition(node)
@@ -89,7 +105,10 @@ class RepresentationsTreeBuilder(BaseRepresentationsTreeBuilder):
     def get_literal(self, node: Node):
         """Resolves an object to a literal"""
 
-        if inspect.isclass(node.obj) or inspect.ismodule(node.obj):
+        if is_generic_type(node.obj):
+            return TypeHintLiteral(node, self)
+
+        if inspect.isclass(node.obj) or inspect.ismodule(node.obj) or inspect.isfunction(node.obj):
             return ReferenceLiteral(node, self)
 
         if isinstance(node.obj, enum.Enum):

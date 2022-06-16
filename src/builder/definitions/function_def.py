@@ -1,4 +1,6 @@
 import inspect
+import sys
+from typing import get_type_hints
 
 from stubmaker.builder.common import BaseDefinition, Node, BaseRepresentationsTreeBuilder
 
@@ -9,34 +11,29 @@ class FunctionDef(BaseDefinition):
         super().__init__(node, tree)
 
         signature = inspect.signature(self.obj)
+        if not tree.preserve_forward_references:
+            try:
+                module = sys.modules.get(self.obj.__module__)
+                annotations = get_type_hints(self.obj, module and module.__dict__)
+            except NameError as exc:
+                raise RuntimeError(f'Failed to evaluate forward reference for {self.obj}') from exc
 
         params = []
         for param in signature.parameters.values():
             if param.annotation is not inspect.Parameter.empty:
-                param = param.replace(annotation=tree.get_literal(Node(self.namespace, None, param.annotation)))
+                annotation = param.annotation if tree.preserve_forward_references else annotations[param.name]
+                param = param.replace(annotation=tree.get_literal(Node(self.namespace, None, annotation)))
             if param.default is not inspect.Parameter.empty:
-                param = param.replace(default=tree.get_literal(Node(self.name, None, param.default)))
+                param = param.replace(default=tree.get_literal(Node(self.namespace, None, param.default)))
             params.append(param)
 
         return_annotation = signature.return_annotation
         if return_annotation is not inspect.Parameter.empty:
-            return_annotation = tree.get_literal(Node(self.namespace, None, return_annotation))
+            annotation = return_annotation if tree.preserve_forward_references else annotations['return']
+            return_annotation = tree.get_literal(Node(self.namespace, None, annotation))
 
         self.signature = signature.replace(parameters=params, return_annotation=return_annotation)
         self.docstring = tree.get_docstring(node)
-
-    def __iter__(self):
-        if self.docstring:
-            yield self.docstring
-
-        for param in self.signature.parameters.values():
-            if param.annotation is not inspect.Parameter.empty:
-                yield param.annotation
-            if param.default is not inspect.Parameter.empty:
-                yield param.default
-
-        if self.signature.return_annotation is not inspect.Parameter.empty:
-            yield self.signature.return_annotation
 
     def get_parameter(self, arg_name: str) -> inspect.Parameter:
         return self.signature.parameters.get(arg_name)

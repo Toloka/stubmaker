@@ -12,6 +12,7 @@ import typing
 
 from test_package import external_typevar
 
+
 T = typing.TypeVar('T')
 
 T_bounded = typing.TypeVar('T_bounded', bound=int)

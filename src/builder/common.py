@@ -1,7 +1,5 @@
 import inspect
-from typing import Generator, Optional
-
-URL_REGEXP = r'https?://\S+'
+from typing import Optional, get_type_hints
 
 
 class Node:
@@ -46,9 +44,6 @@ class BaseRepresentation:
         self.node = node
         self.tree = tree
 
-    def __iter__(self):
-        raise NotImplementedError
-
     @property
     def id(self):
         return id(self.obj)
@@ -69,29 +64,49 @@ class BaseRepresentation:
     def full_name(self):
         return self.node.full_name
 
-    def traverse(self) -> Generator['BaseRepresentation', None, None]:
-        """Recursively traverses the definition tree"""
-        yield self
-        for child in self:
-            yield from child.traverse()
+    @property
+    def module(self) -> str:
+        if inspect.ismodule(self.obj):
+            return self.tree.map_module_name(self.obj.__name__)
+        else:
+            guessed_module = inspect.getmodule(self.obj)
+            # TODO: support imports from set of known modules (e.g. import ModuleType from types despite __module__
+            #  being builtins)
+            return self.tree.map_module_name(guessed_module.__name__)
 
 
 class BaseLiteral(BaseRepresentation):
-
-    def __iter__(self):
-        raise NotImplementedError
+    pass
 
 
 class BaseDefinition(BaseRepresentation):
-
-    def __iter__(self):
-        raise NotImplementedError
+    pass
 
     def get_member_rep(self, member_name: str):
         return self.tree.get_definition(self.node.get_member(member_name))
 
 
 class BaseRepresentationsTreeBuilder:
+    def __init__(
+        self,
+        module_name, module,
+        module_root=None,
+        modules_aliases_mapping=None,
+        preserve_forward_references=True,
+    ):
+        if modules_aliases_mapping is None:
+            modules_aliases_mapping = {
+                '_asyncio': 'asyncio',
+                'pandas.core.frame': 'pandas',
+                'pandas.core.series': 'pandas',
+            }
+
+        self.module_name = module_name
+        self.module_root = module_root or module_name
+        self.modules_aliases_mapping = modules_aliases_mapping
+        self.preserve_forward_references = preserve_forward_references
+
+        self.module_rep = self.get_module_definition(Node('', '', module))
 
     # Helper methods
 
@@ -133,10 +148,22 @@ class BaseRepresentationsTreeBuilder:
         raise NotImplementedError
 
 
-def get_annotations(obj):
+def get_annotations(obj, eval_str):
+    if eval_str:
+        return get_type_hints(obj)
+
     if inspect.isclass(obj):
         annotations = {}
         for parent in obj.__mro__[::-1]:
             annotations.update(getattr(parent, '__annotations__', {}))
         return annotations
     return getattr(obj, '__annotations__', {})
+
+
+def get_type_name(obj):
+    if hasattr(obj, '__name__'):
+        return obj.__name__
+    # types from typing module (i.e. Callable, Optional, etc.)
+    if hasattr(obj, '_name'):
+        return obj._name
+    return None

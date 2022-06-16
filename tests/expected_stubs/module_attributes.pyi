@@ -9,7 +9,11 @@ __all__ = [
     'type_alias_attribute',
     'attribute_of_nested_type',
     'attribute_of_nested_type_with_value',
+    'attribute_of_external_type',
 ]
+import test_package.classes
+
+
 class InnerType:
     ...
 
@@ -36,3 +40,5 @@ attribute_of_inner_type: InnerType
 attribute_of_builtin_type: str
 
 attribute_of_nested_type: ClassWithNestedType.NestedType
+
+attribute_of_external_type: test_package.classes.SimpleClass

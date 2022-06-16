@@ -1,20 +1,18 @@
 import builtins
 import inspect
-import typing
 from collections import defaultdict
-from typing import Any, Dict
+from collections.abc import Iterable
+from typing import Any, Dict, Set, Tuple, Optional, Callable, TypeVar
 
-from stubmaker.builder.common import Node, BaseDefinition, BaseRepresentationsTreeBuilder, get_annotations
+from stubmaker.builder.common import (
+    Node,
+    BaseDefinition,
+    BaseRepresentationsTreeBuilder,
+    BaseRepresentation,
+    get_annotations,
+    get_type_name,
+)
 from stubmaker.builder.literals import TypeHintLiteral, TypeVarLiteral, ReferenceLiteral
-
-
-def get_type_name(obj):
-    if hasattr(obj, '__name__'):
-        return obj.__name__
-    # types from typing module (i.e. Callable, Optional, etc.)
-    if hasattr(obj, '_name'):
-        return obj._name
-    return None
 
 
 class ModuleDef(BaseDefinition):
@@ -25,12 +23,11 @@ class ModuleDef(BaseDefinition):
         self.docstring = self.tree.get_docstring(self.node)
 
         self.members = {}
-        # we do not use get_type_hints because we do not want to evaluate forward references
-        annotations = get_annotations(self.obj)
+        annotations = get_annotations(self.obj, eval_str=not tree.preserve_forward_references)
 
-        public_members = self.get_public_members()
+        members = self.get_representable_members()
 
-        for member_name, member in self.remove_imported_members(public_members).items():
+        for member_name, member in members.items():
             # check if member is alias
             if get_type_name(member) != member_name:
                 if member_name in annotations:
@@ -46,17 +43,11 @@ class ModuleDef(BaseDefinition):
                 definition = self.tree.get_definition(node)
                 self.members[member_name] = definition
 
-    def __iter__(self):
-        if self.docstring:
-            yield self.docstring
-
-        yield from self.members.values()
-
     def _is_import_necessary(self, member):
         if inspect.ismodule(member):
             return self.tree.module_name != member.__name__
 
-        if isinstance(member, typing.TypeVar):
+        if isinstance(member, TypeVar):
             return member.__module__ != self.tree.module_name
 
         member_name = get_type_name(member)
@@ -65,65 +56,57 @@ class ModuleDef(BaseDefinition):
 
         return self.tree.module_name != member.__module__ and member_name not in builtins.__dict__
 
-    def _get_import_from(self, member, member_name):
-        guessed_module = inspect.getmodule(member)
-        if member_name in guessed_module.__dict__:
-            return member.__module__, member_name
+    def get_import_module_for_representation(self, child_repr: BaseRepresentation) -> Optional[str]:
+        if isinstance(child_repr, (TypeHintLiteral, TypeVarLiteral, ReferenceLiteral)) and \
+                self._is_import_necessary(child_repr.obj):
+            return child_repr.module
 
-        raise ValueError(f"{member_name} can't be imported from {guessed_module.__name__}")
-
-    def _try_to_add_import_for_object(self, child_repr, imports):
-        if isinstance(child_repr, (TypeHintLiteral, TypeVarLiteral)):
-            if self._is_import_necessary(child_repr.obj):
-                imports.add(child_repr.obj.__module__)
-        elif isinstance(child_repr, ReferenceLiteral):
-            if not self._is_import_necessary(child_repr.obj):
-                return
-
-            # TODO: not all builtins are available from globals. For instance NoneType
-            if inspect.ismodule(child_repr.obj):
-                module_name = child_repr.obj.__name__
-            else:
-                module_name = child_repr.obj.__module__
-
-            # hack urllib3 stubs for mypy
-            if module_name and module_name.startswith('urllib3'):
-                if inspect.ismodule(child_repr.obj):
-                    child_repr.obj.__name__ = f'requests.packages.{module_name}'
-                    module_name = child_repr.obj.__name__
-                else:
-                    child_repr.obj.__module__ = f'requests.packages.{module_name}'
-                    module_name = child_repr.obj.__module__
-
-            imports.add(module_name)
-
-    def get_imports(self, used_object_ids):
+    def get_imports(
+        self,
+        used_object_ids: Set[int], traverse_method: Callable[[BaseRepresentation], Iterable[BaseRepresentation]]
+    ) -> Tuple[Set[str], Dict[str, Set[Tuple[str, Optional[str]]]]]:
         imports = set()
         from_imports = defaultdict(set)
 
-        for curr in self.traverse():
+        for curr in traverse_method(self):
             if curr.id in used_object_ids:
-                for child_repr in curr.traverse():
-                    self._try_to_add_import_for_object(child_repr, imports)
+                import_module = self.get_import_module_for_representation(curr)
+                if import_module:
+                    imports.add(import_module)
 
         # try to add unused but specified in __all__ dependencies
         for member_name in self.obj.__all__:
-            member = getattr(self.obj, member_name, None)
-            if not member:
-                # annotated attribute without value
-                member = self.members[member_name].obj
-            if self._is_import_necessary(member):
-                # check if object is module
-                if inspect.ismodule(member):
-                    member_package_name = '.'.join(member.__name__.split('.')[:-1])
-                    from_imports[member_package_name].add((member_name, None))
+            # check if __all__ entry is module
+            if member_name in self.obj.__dict__ and inspect.ismodule(self.obj.__dict__[member_name]):
+                member_package_name = '.'.join(self.obj.__dict__[member_name].__name__.split('.')[:-1])
+                from_imports[member_package_name].add((member_name, None))
+            else:
+                if member_name in self.members:
+                    member_repr = self.members[member_name]
+                elif member_name in self.obj.__dict__:
+                    member_repr = self.tree.get_literal(self.node.get_literal_node(self.obj.__dict__[member_name]))
                 else:
-                    from_module, from_name = self._get_import_from(member, member_name)
-                    from_imports[from_module].add((from_name, None))
+                    raise RuntimeError(f'{self.obj.__name__}: {member_name} is specified in __all__'
+                                       f' but not found in __dict__ or __annotations__')
+                import_module = self.get_import_module_for_representation(member_repr)
+                if import_module:
+                    from_imports[member_repr.module].add((member_name, None))
 
         return imports, from_imports
 
-    def remove_imported_members(self, members):
+    def get_module_members(self) -> Dict[str, Any]:
+        members = dict(self.obj.__dict__)
+        for member_name in get_annotations(self.obj, eval_str=not self.tree.preserve_forward_references):
+            # try to add module level attributes with annotations but without value that are specified in __all__
+            # (such attributes can't be retrieved from __dict__)
+            if member_name in self.obj.__all__:
+                members[member_name] = None
+        return members
+
+    def private_module_members_removed(self, members: Dict[str, Any]) -> Dict[str, Any]:
+        return {member_name: member for member_name, member in members.items() if not member_name.startswith('__')}
+
+    def imported_members_removed(self, members: Dict[str, Any]) -> Dict[str, Any]:
         required_members = {}
 
         for member_name, member in members.items():
@@ -139,14 +122,7 @@ class ModuleDef(BaseDefinition):
 
         return required_members
 
-    def get_public_members(self) -> Dict[str, Any]:
-        public_members = {member_name: member for member_name, member in self.obj.__dict__.items()
-                          if not member_name.startswith('__')}
-
-        for member_name in get_annotations(self.obj):
-            # try to add module level attributes with annotations but without value that are specified in __all__
-            # (such attributes can't be retrieved from __dict__)
-            if member_name not in public_members and member_name in self.obj.__all__:
-                public_members[member_name] = None
-
-        return public_members
+    def get_representable_members(self):
+        members = self.get_module_members()
+        members = self.private_module_members_removed(members)
+        return self.imported_members_removed(members)

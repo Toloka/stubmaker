@@ -3,21 +3,14 @@ __all__ = [
 ]
 import inspect
 import os
-
 from io import StringIO
+from typing import Dict, Tuple, Optional, Set, List
 
-from stubmaker.viewers.basic_viewer import BasicViewer
-from stubmaker.viewers.common import add_inherited_singledispatchmethod
-from stubmaker.viewers.util import (
-    wrap_function_signature,
-    indent,
-    replace_representations_in_signature,
-    get_common_namespace_prefix,
-)
 from stubmaker.builder.definitions import (
     AttributeAnnotationDef,
     AttributeDef,
     ClassDef,
+    MetaclassDef,
     DocumentationDef,
     EnumDef,
     FunctionDef,
@@ -26,9 +19,17 @@ from stubmaker.builder.definitions import (
     StaticMethodDef,
 )
 from stubmaker.builder.literals import ReferenceLiteral, TypeVarLiteral
-from stubmaker.builder.common import BaseDefinition, BaseRepresentation
+from stubmaker.viewers.basic_viewer import BasicViewer
+from stubmaker.viewers.common import add_inherited_singledispatchmethod
+from stubmaker.viewers.util import (
+    wrap_function_signature,
+    indent,
+    replace_representations_in_signature,
+    get_common_namespace_prefix,
+)
 
 
+@add_inherited_singledispatchmethod(method_name='iter_over', implementation_prefix='iter_over')
 @add_inherited_singledispatchmethod(method_name='view', implementation_prefix='view_')
 class StubViewer(BasicViewer):
 
@@ -49,9 +50,10 @@ class StubViewer(BasicViewer):
     def view_reference_literal(self, reference_lit: ReferenceLiteral):
         view = super().view_reference_literal(reference_lit)
 
-        if not self.module_context.module_def._is_import_necessary(reference_lit.obj):
+        import_module = self.module_context.module_def.get_import_module_for_representation(reference_lit)
+        if not import_module:
             return view
-        return f'{reference_lit.obj.__module__}.{view}'
+        return f'{import_module}.{view}'
 
     def view_type_var_literal(self, type_var_lit: TypeVarLiteral):
         # Present name means that TypeVar is used in definition (i.e. T = TypeVar(...))
@@ -66,9 +68,10 @@ class StubViewer(BasicViewer):
         # consider TypeVar being imported from other module
         imported_from_module = os.sys.modules[type_var_lit.obj.__module__]
         name = next(obj_name for obj_name, obj in imported_from_module.__dict__.items() if obj == type_var_lit.obj)
-        if not self.module_context.module_def._is_import_necessary(type_var_lit.obj):
+        import_module = self.module_context.module_def.get_import_module_for_representation(type_var_lit)
+        if not import_module:
             return name
-        return f'{type_var_lit.obj.__module__}.{name}'
+        return f'{import_module}.{name}'
 
     def view_attribute_annotation_definition(self, attribute_annotation_def: AttributeAnnotationDef):
         return f'{attribute_annotation_def.name}: {self.view(representation=attribute_annotation_def.annotation)}\n'
@@ -79,11 +82,21 @@ class StubViewer(BasicViewer):
     def view_class_definition(self, class_def: ClassDef):
         sio = StringIO()
 
-        if class_def.node.obj.__bases__ == (object,):
-            sio.write(f'class {class_def.name}:\n')
-        else:
+        sio.write(f'class {class_def.name}')
+
+        metaclass_is_type = class_def.metaclass.obj is type  # noqa
+        metaclass_is_inherited = any(class_def.metaclass.obj is type(base.obj) for base in class_def.bases)  # noqa
+        need_to_write_metaclass = not metaclass_is_type and not metaclass_is_inherited
+
+        if class_def.bases and need_to_write_metaclass:
             bases = ', '.join(self.view(base) for base in class_def.bases)
-            sio.write(f'class {class_def.name}({bases}):\n')
+            sio.write(f'({bases}, metaclass={self.view(class_def.metaclass)})')
+        elif class_def.bases:
+            bases = ', '.join(self.view(base) for base in class_def.bases)
+            sio.write(f'({bases})')
+        elif need_to_write_metaclass:
+            sio.write(f'(metaclass={self.view(class_def.metaclass)})')
+        sio.write(':\n')
 
         if class_def.docstring:
             sio.write(indent(f'{self.view(class_def.docstring)}\n'))
@@ -102,6 +115,9 @@ class StubViewer(BasicViewer):
         if not sio.getvalue().endswith('\n\n'):
             sio.write('\n')
         return sio.getvalue()
+
+    def view_metaclass_definition(self, metaclass_def: MetaclassDef):
+        return self.view_class_definition(metaclass_def)
 
     def view_documentation_definition(self, documentation_def: DocumentationDef):
         return f'"""{inspect.cleandoc(documentation_def.obj).rstrip()}\n"""\n'
@@ -140,13 +156,6 @@ class StubViewer(BasicViewer):
         sio.write('\n')
         return sio.getvalue()
 
-    @staticmethod
-    def get_subtree_ids(root_representation: BaseRepresentation):
-        ids = set()
-        for child in root_representation.traverse():
-            ids.add(child.id)
-        return ids
-
     def view_module_definition(self, module_def: ModuleDef):
         sio = StringIO()
 
@@ -163,61 +172,56 @@ class StubViewer(BasicViewer):
                 else:
                     sio.write('__all__: list = []\n')
 
-            # traverse to get actually used representations
-            used_object_ids = set()
-            for representation in module_def:
-                if representation.name != '__all__' and representation.name not in module_def.obj.__all__:
-                    continue
-
-                used_object_ids.update(self.get_subtree_ids(representation))
-
-            # traverse one more time to add representations that have nested definitions that are used by used
-            # representations.
-            for representation in module_def:
-                for child_rep in representation.traverse():
-                    if isinstance(child_rep, BaseDefinition) and child_rep.id in used_object_ids:
-                        used_object_ids.update(self.get_subtree_ids(representation))
-                        break
+            used_object_ids = self.get_used_members_ids(module_def)
 
             # add used TypeVar definitions
-            for representation in module_def.traverse():
+            for representation in self.traverse(module_def):
                 if isinstance(representation, AttributeDef) and isinstance(representation.value, TypeVarLiteral):
                     if representation.value.id in used_object_ids:
                         used_object_ids.add(representation.id)
                         ctx.object_id_to_definition[representation.value.id] = representation
 
             # imports
-            imports, from_imports = module_def.get_imports(used_object_ids)
+            imports, from_imports = module_def.get_imports(used_object_ids, self.traverse)
 
-            if imports:
-                for name in sorted(imports):
-                    sio.write(f'import {name}\n')
-                sio.write('\n')
-
-            if from_imports:
-                for key in sorted(from_imports.keys()):
-                    if len(from_imports[key]) > 1:
-                        names = ',\n'.join(
-                            indent(f'{name} as {import_as}' if import_as else f'{name}')
-                            for name, import_as in sorted(from_imports[key], key=lambda x: x[0])
-                        )
-                        sio.write(f'from {key} import (\n{names}\n)\n')
-                    else:
-                        names = ', '.join(
-                            f'{name} as {import_as}' if import_as else name for name, import_as in from_imports[key])
-                        sio.write(f'from {key} import {names}\n')
+            self._write_imports_section(imports, sio)
+            self._write_from_imports_section(from_imports, sio)
 
             if imports or from_imports:
                 sio.write('\n')
 
             # module members
             if module_def.members:
-                for representation in module_def:
+                for representation in self.iter_over(module_def):
                     if representation.id in used_object_ids:
                         sio.write(self.view(representation))
                         sio.write('\n')
 
         return sio.getvalue().rstrip('\n') + '\n'
+
+    def _write_from_imports_section(self, from_imports: Dict[str, Set[Tuple[str, Optional[str]]]], sio: StringIO):
+        if from_imports:
+            for key in sorted(from_imports.keys()):
+                self._write_from_import(key, sorted(from_imports[key], key=lambda x: x[0]), sio)
+            sio.write('\n')
+
+    def _write_from_import(self, module_name: str, names: List[Tuple[str, Optional[str]]], sio: StringIO):
+        if len(names) > 1:
+            names = ',\n'.join(
+                f'{name} as {import_as}' if import_as else name for name, import_as in names)
+            sio.write(f'from {module_name} import (\n{indent(names)},\n)\n')
+        else:
+            names = ', '.join(f'{name} as {import_as}' if import_as else name for name, import_as in names)
+            sio.write(f'from {module_name} import {names}\n')
+
+    def _write_imports_section(self, imports: List[str], sio: StringIO):
+        if imports:
+            for name in sorted(imports):
+                self._write_import(name, sio)
+            sio.write('\n')
+
+    def _write_import(self, module_name: str, sio: StringIO):
+        sio.write(f'import {module_name}\n')
 
     def view_class_method_definition(self, class_method_definition: ClassMethodDef):
         return f'@classmethod\n{self.view_function_definition(class_method_definition)}'

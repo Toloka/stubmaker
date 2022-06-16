@@ -11,6 +11,3 @@ class AttributeDef(BaseDefinition):
     @property
     def id(self):
         return id(self.value)
-
-    def __iter__(self):
-        yield self.value

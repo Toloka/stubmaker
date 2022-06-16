@@ -27,12 +27,16 @@ get_expected_stub = partial(os.path.join, TEST_DIR, 'expected_stubs')
 def get_output_path(tmpdir_factory):
     """Applies stubmaker and returns results dir"""
     output_path = str(tmpdir_factory.mktemp('output'))
-    subprocess.call([
-        STUBMAKER_CMD,
-        '--module-root', 'test_package',
-        '--src-root', get_input_path(),
-        '--output-dir', output_path,
-    ])
+    subprocess.run(
+        [
+            STUBMAKER_CMD,
+            '--module-root', 'test_package',
+            '--src-root', get_input_path(),
+            '--output-dir', output_path,
+            '--modules-aliases', os.path.join(TEST_DIR, 'test_modules_aliases.json'),
+        ],
+        check=True,
+    )
     return partial(os.path.join, output_path)
 
 

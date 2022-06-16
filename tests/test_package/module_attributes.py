@@ -8,7 +8,10 @@ __all__ = [
     'type_alias_attribute',
     'attribute_of_nested_type',
     'attribute_of_nested_type_with_value',
+    'attribute_of_external_type'
 ]
+
+from . import function_without_return_annotation
 
 
 class InnerType:
@@ -53,3 +56,6 @@ class ClassWithNestedType:
 
 attribute_of_nested_type: ClassWithNestedType.NestedType
 attribute_of_nested_type_with_value: ClassWithNestedType.NestedType = ClassWithNestedType.NestedType()
+
+
+attribute_of_external_type: function_without_return_annotation()

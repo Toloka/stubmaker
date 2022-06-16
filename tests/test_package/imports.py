@@ -5,6 +5,8 @@ __all__ = [
     'SomeChild',
     'UsedInAllClass',
     'Path',
+    'join',
+    'splitext',
 ]
 # Many imports below are useless for stubs. Stub generation should provide only necessary imports for the stub file.
 import os
@@ -13,11 +15,12 @@ import typing
 from pathlib import Path
 from functools import *
 
-from . classes import SimpleClass, InheritedClass
+from .classes import SimpleClass, InheritedClass
 from . import docstrings
-from . docstrings import module_function
+from .docstrings import module_function
 from .enums import *
-
+# check "from ... import (...)" form of import in stubs
+from os.path import join, splitext
 
 import pathlib as renamed_pathlib
 

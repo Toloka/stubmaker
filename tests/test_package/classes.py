@@ -4,8 +4,6 @@ __all__ = [
     'SimpleClass',
     'InheritedClass',
     'MultipleInheritedClass',
-    'CustomMetaclass',
-    'ClassWithCustomMetaclass',
 ]
 
 
@@ -67,18 +65,3 @@ class MultipleInheritedClass(InheritedClass, SimpleClass):
     @staticmethod
     def staticmethod_to_redefine():
         return None
-
-
-# Metaclass adds new attribute with annotation that should appear in stubs
-class CustomMetaclass(type):
-    def __new__(mcs, *args, **kwargs):
-        cls = super().__new__(mcs, *args, **kwargs)
-        cls.generated_member = 'some value'
-        annotations = getattr(cls.__dict__, '__annotations__', {})
-        annotations['generated_member'] = str
-        cls.__annotations__ = annotations
-        return cls
-
-
-class ClassWithCustomMetaclass(metaclass=CustomMetaclass):
-    pass

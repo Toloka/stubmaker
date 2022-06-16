@@ -13,6 +13,3 @@ class AttributeAnnotationDef(BaseDefinition):
     @property
     def id(self):
         return id(self.annotation)
-
-    def __iter__(self):
-        yield self.annotation

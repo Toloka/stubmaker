@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 from importlib import import_module
@@ -6,6 +7,7 @@ from importlib.machinery import ModuleSpec
 from importlib.util import find_spec, resolve_name, spec_from_file_location
 from pkgutil import walk_packages
 from typing import Optional, Tuple
+
 from _frozen_importlib_external import _NamespaceLoader
 
 
@@ -23,8 +25,8 @@ class SourceFinder(MetaPathFinder):
         # Checking if fullname is module_root or its submodule
         if fullname == self.module_root:
             path_prefix = self.sources_path
-        elif fullname.startswith(self.sources_path + '.'):
-            tokens = fullname[len(self.sources_path) + 1]
+        elif fullname.startswith(self.module_root + '.'):
+            tokens = fullname[len(self.module_root) + 1:].split('.')
             path_prefix = os.path.join(self.sources_path, *tokens)
         else:
             return None
@@ -60,10 +62,17 @@ def override_module_import_path(module, sources_path):
     sys.meta_path.append(VirtualPackageFinder(module))
 
 
-def traverse_modules(module_root, sources_path):
-    yield module_root, import_module(module_root)
+def traverse_modules(module_root, sources_path, skip_modules=None):
+    if skip_modules and module_root in skip_modules:
+        logging.info(f'Skipping module {module_root}')
+    else:
+        yield module_root, import_module(module_root)
+
     for _, module_name, _ in walk_packages([sources_path], prefix=module_root + '.'):
-        yield module_name, import_module(module_name)
+        if skip_modules and module_name in skip_modules:
+            logging.info(f'Skipping module {module_name}')
+        else:
+            yield module_name, import_module(module_name)
 
 
 def split_qulaname(qualname) -> Tuple[str, Optional[str]]:

@@ -1,6 +1,8 @@
+import sys
 import typing
-from stubmaker.builder.common import BaseLiteral, BaseRepresentationsTreeBuilder, Node
 from typing import Union, Optional, Callable
+
+from stubmaker.builder.common import BaseLiteral, BaseRepresentationsTreeBuilder, Node
 
 
 class TypeHintLiteral(BaseLiteral):
@@ -20,10 +22,12 @@ class TypeHintLiteral(BaseLiteral):
             args = ()
 
         # get origin of generic type
-        if self.obj._name:
+        if getattr(self.obj, '_name', None):
             # If has _name ignore __origin__ field and get origin directly from types module. This is necessary for
             # typing aliases (e.g. __origin__ of List[int] is list instead of typing.List).
             origin = getattr(typing, self.obj._name)
+            if sys.version_info >= (3, 10) and origin is Optional:
+                origin = Union
         else:
             # Fallback to using __origin__. For non-generic types (e.g. List without arguments) retrieve object itself.
             origin = getattr(self.obj, '__origin__', self.obj)
@@ -37,7 +41,3 @@ class TypeHintLiteral(BaseLiteral):
         args = [None if arg is type(None) else arg for arg in args]  # noqa: E721
         self.type_hint_origin = self.tree.get_literal_for_reference(Node(self.namespace, None, origin))
         self.type_hint_args = [self.tree.get_literal(Node(self.namespace, None, arg)) for arg in args]
-
-    def __iter__(self):
-        yield self.type_hint_origin
-        yield from self.type_hint_args

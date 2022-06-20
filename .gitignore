@@ -18,3 +18,6 @@
 !*.pyi
 !*.toml
 !*.yml
+
+# Unignore tests configuration
+!tests/test_modules_aliases.json

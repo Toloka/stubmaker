@@ -1,8 +1,7 @@
 import builtins
 import inspect
 from collections import defaultdict
-from collections.abc import Iterable
-from typing import Any, Dict, Set, Tuple, Optional, Callable, TypeVar
+from typing import Any, Dict, Set, Tuple, Optional, Callable, TypeVar, Iterable
 
 from stubmaker.builder.common import (
     Node,

@@ -13,7 +13,7 @@ setup(
     package_dir={PREFIX: 'src'},
     packages=[f'{PREFIX}.{package}' for package in find_packages('src')],
     py_modules=['make_stubs'],
-    version='0.0.3',
+    version='0.0.2',
     description='Tool for generating python stubs',
     long_description=readme,
     long_description_content_type='text/markdown',
@@ -22,7 +22,7 @@ setup(
     python_requires='>=3.7.4',
     install_requires=[
         'docstring-parser',
-        'typing-inspect'
+        'typing_inspect',
     ],
     include_package_data=True,
     entry_points={

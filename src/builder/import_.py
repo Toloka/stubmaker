@@ -73,29 +73,3 @@ def traverse_modules(module_root, sources_path, skip_modules=None):
             logging.info(f'Skipping module {module_name}')
         else:
             yield module_name, import_module(module_name)
-
-
-def split_qulaname(qualname) -> Tuple[str, Optional[str]]:
-    """
-    Splits a qualname into a module_name and a nested_name
-    Args:
-        qualname: a __qualname__ of an object
-
-    Returns: A tuple of module_name and a nested_name where
-        * module_name is the largest subqualname that resolves to a module
-        * nested_name is the rest of the qualname or None if module_name is qualname
-    """
-
-    module_name = qualname
-    while module_name:
-        try:
-            find_spec(module_name)
-        except ImportError:
-            module_name = module_name[:module_name.rfind('.')]
-        else:
-            break
-
-    if not module_name:
-        raise ValueError(f'Qualname {qualname:}')
-
-    return module_name, qualname[len(module_name) + 1:] or None

@@ -1,41 +1,33 @@
 import inspect
+from functools import cached_property
 from typing import Optional, get_type_hints
 
 
 class Node:
-    """Spec for a represented object"""
+    """Object data used in BaseRepresentation type.
 
-    def __init__(self, namespace: str, name: Optional[str], obj):
+    Parameters:
+        namespace: namespace of representation.
+        name: name of representation associated with object in the namespace. May be None for literals (e.g. type
+            annotations does not have names, but classes do).
+        obj: python object.
+        module_name: name of the module where obj is defined.
+        qualname: qualname of obj.
+    """
+
+    def __init__(
+        self,
+        namespace: str, name: Optional[str], obj, module_name: Optional[str], qualname: Optional[str],
+    ):
         self.namespace = namespace
         self.name = name
         self.obj = obj
-
-    @property
-    def indentation_level(self) -> int:
-        if not self.namespace:
-            return 0
-        return self.namespace.count('.') + 1
-
-    def get_member(self, member_name: str) -> 'Node':
-        return Node(
-            namespace=f'{self.namespace}.{self.name}' if self.namespace else self.name if self.name else '',
-            name=member_name,
-            obj=getattr(self.obj, member_name)
-        )
-
-    def get_literal_node(self, obj):
-        return Node(
-            namespace=self.namespace,
-            name=None,
-            obj=obj
-        )
+        self.module_name = module_name
+        self.qualname = qualname
 
     @property
     def full_name(self):
-        if hasattr(self.obj, '__module__') and hasattr(self.obj, '__qualname__'):
-            return f'{self.obj.__module__}.{self.obj.__qualname__}'
-        else:
-            return ''
+        return f'{self.module_name}.{self.qualname}' if self.module_name else self.qualname
 
 
 class BaseRepresentation:
@@ -65,14 +57,12 @@ class BaseRepresentation:
         return self.node.full_name
 
     @property
-    def module(self) -> str:
-        if inspect.ismodule(self.obj):
-            return self.tree.map_module_name(self.obj.__name__)
-        else:
-            guessed_module = inspect.getmodule(self.obj)
-            # TODO: support imports from set of known modules (e.g. import ModuleType from types despite __module__
-            #  being builtins)
-            return self.tree.map_module_name(guessed_module.__name__)
+    def module_name(self) -> str:
+        return self.node.module_name
+
+    @property
+    def qualname(self) -> str:
+        return self.node.qualname
 
 
 class BaseLiteral(BaseRepresentation):
@@ -80,37 +70,26 @@ class BaseLiteral(BaseRepresentation):
 
 
 class BaseDefinition(BaseRepresentation):
-    pass
 
-    def get_member_rep(self, member_name: str):
-        return self.tree.get_definition(self.node.get_member(member_name))
+    def get_node_for_member(self, member_name: str) -> Node:
+        return self.tree.create_node_for_object(
+            namespace=f'{self.namespace}.{self.name}' if self.namespace else self.name if self.name else '',
+            name=member_name,
+            obj=getattr(self.obj, member_name),
+        )
+
+    @cached_property
+    def docstring(self) -> Optional['BaseDefinition']:
+        if getattr(self.obj, '__doc__') is not None:
+            return self.tree.get_documentation_definition(self.get_node_for_member('__doc__'))
+        return None
 
 
 class BaseRepresentationsTreeBuilder:
-    def __init__(
-        self,
-        module_name, module,
-        module_root=None,
-        modules_aliases_mapping=None,
-        preserve_forward_references=True,
-    ):
-        if modules_aliases_mapping is None:
-            modules_aliases_mapping = {
-                '_asyncio': 'asyncio',
-                'pandas.core.frame': 'pandas',
-                'pandas.core.series': 'pandas',
-            }
-
-        self.module_name = module_name
-        self.module_root = module_root or module_name
-        self.modules_aliases_mapping = modules_aliases_mapping
-        self.preserve_forward_references = preserve_forward_references
-
-        self.module_rep = self.get_module_definition(Node('', '', module))
 
     # Helper methods
 
-    def get_docstring(self, node: Node) -> Optional[BaseDefinition]:
+    def create_node_for_object(self, namespace, name, obj) -> Node:
         raise NotImplementedError
 
     # Get representation for definitions

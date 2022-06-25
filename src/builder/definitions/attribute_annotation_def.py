@@ -8,7 +8,7 @@ class AttributeAnnotationDef(BaseDefinition):
         super().__init__(node, tree)
         # we don't want to associate annotation object with name (e.g. TypeVar used in annotation shouldn't be accessed
         # with this name)
-        self.annotation = self.tree.get_literal(Node(node.namespace, '', node.obj))
+        self.annotation = self.tree.get_literal(self.tree.create_node_for_object(node.namespace, '', node.obj))
 
     @property
     def id(self):

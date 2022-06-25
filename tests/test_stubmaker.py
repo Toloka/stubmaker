@@ -1,5 +1,4 @@
 import os
-import sys
 
 import pytest
 import subprocess
@@ -28,6 +27,7 @@ def get_output_path(tmpdir_factory):
             '--module-root', 'test_package',
             '--src-root', get_input_path(),
             '--output-dir', output_path,
+            '--objects-aliases', os.path.join(TEST_DIR, 'test_objects_aliases.py'),
             '--modules-aliases', os.path.join(TEST_DIR, 'test_modules_aliases.json'),
         ],
         stderr=subprocess.PIPE, text=True,

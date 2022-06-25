@@ -12,8 +12,7 @@ class BaseClassDef(BaseDefinition):
     def __init__(self, node: Node, tree: BaseRepresentationsTreeBuilder):
         super().__init__(node, tree)
 
-        self.docstring = self.tree.get_docstring(self.node)
-        self.metaclass = self.tree.get_literal(Node(self.namespace, None, type(self.obj)))
+        self.metaclass = self.tree.get_literal(self.tree.create_node_for_object(self.namespace, None, type(self.obj)))
 
         self.bases = []
         if self.obj.__bases__ != (object,):
@@ -22,7 +21,7 @@ class BaseClassDef(BaseDefinition):
             bases = generic_bases or self.obj.__bases__
 
             for base in bases:
-                self.bases.append(self.tree.get_literal(Node(self.namespace, None, base)))
+                self.bases.append(self.tree.get_literal(self.tree.create_node_for_object(self.namespace, None, base)))
 
         self.members = {}
         for member_name in self.get_public_member_names():
@@ -30,9 +29,11 @@ class BaseClassDef(BaseDefinition):
             # to distinguish between methods, classmethods and staticmethods
             member = self.obj.__dict__[member_name]
 
-            # TODO: dirty hack
-            node = self.node.get_member(member_name)
-            node.obj = member
+            node = self.tree.create_node_for_object(
+                namespace=f'{self.namespace}.{self.name}' if self.namespace else self.name if self.name else '',
+                name=member_name,
+                obj=member,
+            )
 
             if isinstance(member, staticmethod):
                 node.obj = member.__func__
@@ -54,11 +55,13 @@ class BaseClassDef(BaseDefinition):
         self.annotations = {}
         annotations = get_annotations(self.obj, eval_str=not tree.preserve_forward_references)
         for member_name, annotation in annotations.items():
-            self.annotations[member_name] = self.tree.get_attribute_annotation_definition(Node(
-                namespace=f'{self.namespace}.{self.name}' if self.namespace else self.name,
-                name=member_name,
-                obj=annotations[member_name],
-            ))
+            self.annotations[member_name] = self.tree.get_attribute_annotation_definition(
+                self.tree.create_node_for_object(
+                    namespace=f'{self.namespace}.{self.name}' if self.namespace else self.name,
+                    name=member_name,
+                    obj=annotations[member_name],
+                )
+            )
 
     def get_public_member_names(self):
         cls = self.obj

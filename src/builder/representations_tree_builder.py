@@ -1,7 +1,10 @@
+import collections
 import enum
 import inspect
+from contextvars import ContextVar
 from enum import Enum
-from typing import Optional, TypeVar
+from types import ModuleType
+from typing import TypeVar, Optional
 
 from stubmaker.builder.common import BaseDefinition, BaseLiteral, BaseRepresentationsTreeBuilder, Node
 from stubmaker.builder.definitions import (
@@ -22,13 +25,73 @@ from typing_inspect import is_generic_type
 
 class RepresentationsTreeBuilder(BaseRepresentationsTreeBuilder):
 
-    def __str__(self):
-        return str(self.module_rep)
+    def __init__(
+        self,
+        module_name, module,
+        module_root=None,
+        modules_aliases_mapping=None,
+        described_objects=None,
+        preserve_forward_references=True,
+    ):
+        """Class used to build the tree of objects and definitions representations for one module.
 
-    def get_docstring(self, node: Node) -> Optional[BaseDefinition]:
-        if getattr(node.obj, '__doc__') is not None:
-            return self.get_documentation_definition(node.get_member('__doc__'))
-        return None
+        Parameters:
+            module_name: name of the current module.
+            module: current module object.
+            module_root: current module root package. Used in imports.
+            modules_aliases_mapping: a dictionary of modules aliases to use.
+            objects_with_redefined_modules: a dictionary from python objects to fullnames (in
+                <module_path>.<qualname> format). Such objects' names and modules will not be deduced based on
+                runtime data and provided names and modules will be used instead.
+            preserve_forward_references: if True forward references will not be evaluated in resulting expressions.
+        """
+
+        super().__init__()
+
+        if modules_aliases_mapping is None:
+            modules_aliases_mapping = {
+                '_asyncio': 'asyncio',
+            }
+
+        if described_objects is None:
+            self.object_qualname_mapping = {
+                ModuleType: 'ModuleType',
+                ContextVar: 'ContextVar',
+            }
+            self.object_module_mapping = {
+                ModuleType: 'types',
+                ContextVar: 'contextvars',
+            }
+        else:
+            self.object_qualname_mapping = {obj: qualname for obj, (_, qualname) in
+                                            described_objects.items()}
+            self.object_module_mapping = {obj: module for obj, (module, _) in
+                                          described_objects.items()}
+
+        self.module_name = module_name
+        self.module_root = module_root or module_name
+        self.modules_aliases_mapping = modules_aliases_mapping
+        self.preserve_forward_references = preserve_forward_references
+
+        self.module_rep = self.get_module_definition(self.create_node_for_object('', '', module))
+
+    def create_node_for_object(self, namespace, name, obj):
+        if isinstance(obj, collections.Hashable):
+            module_name = self.object_module_mapping.get(obj)
+            qualname = self.object_qualname_mapping.get(obj)
+        else:
+            module_name = None
+            qualname = None
+
+        if module_name is None:
+            guessed_module = inspect.getmodule(obj)
+            module_name = guessed_module and guessed_module.__name__
+
+        return Node(
+            namespace, name, obj,
+            module_name=self.map_module_name(module_name),
+            qualname=qualname or getattr(obj, '__qualname__', None),
+        )
 
     # Get representation for definitions
 
@@ -43,7 +106,10 @@ class RepresentationsTreeBuilder(BaseRepresentationsTreeBuilder):
 
         return self.get_attribute_definition(node)
 
-    def map_module_name(self, module_name: str) -> str:
+    def map_module_name(self, module_name: Optional[str]) -> Optional[str]:
+        if not module_name:
+            return None
+
         prefixes = [(len(key), key) for key in self.modules_aliases_mapping if module_name.startswith(key)]
         if not prefixes:
             return module_name
@@ -77,7 +143,7 @@ class RepresentationsTreeBuilder(BaseRepresentationsTreeBuilder):
 
     def get_class_definition(self, node: Node) -> BaseDefinition:
 
-        if node.obj.__module__ == self.module_name:
+        if node.module_name == self.module_name:
             if issubclass(node.obj, Enum):
                 return EnumDef(node, self)
             if issubclass(node.obj, type):

@@ -9,6 +9,7 @@ __all__ = [
     'module',
     'classes',
     'external_typevar',
+    'ClassWithRedefinedModule',
 ]
 import typing
 
@@ -25,3 +26,6 @@ def get_implicit_annotation(): ...
 
 
 external_typevar = typing.TypeVar('external_typevar')
+
+class ClassWithRedefinedModule:
+    ...

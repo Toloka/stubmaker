@@ -20,4 +20,5 @@
 !*.yml
 
 # Unignore tests configuration
+!test_objects_modules_aliases.json
 !tests/test_modules_aliases.json

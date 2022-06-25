@@ -58,10 +58,9 @@ class BasicViewer(ViewerBase):
 
     def view_reference_literal(self, reference_lit: ReferenceLiteral):
         if inspect.isclass(reference_lit.obj) or inspect.isfunction(reference_lit.obj):
-            qualname = reference_lit.obj.__qualname__
+            qualname = reference_lit.qualname
             prefix = get_common_namespace_prefix(reference_lit.namespace, qualname[:qualname.rfind('.')])
             return qualname[len(prefix):]
-
         return getattr(reference_lit.obj, '__name__', None) or reference_lit.obj._name
 
     def view_type_hint_literal(self, type_hint_lit: TypeHintLiteral):
@@ -155,7 +154,7 @@ class BasicViewer(ViewerBase):
         yield from type_hint_lit.type_hint_args
 
     def iter_over_type_var_literal(self, type_var_lit: TypeVarLiteral):
-        yield type_var_lit.tree.get_literal(Node(type_var_lit.namespace, None, TypeVar))
+        yield type_var_lit.origin
         yield type_var_lit.type_var_name
         yield type_var_lit.covariant
         yield type_var_lit.contravariant

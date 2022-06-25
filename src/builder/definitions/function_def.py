@@ -22,18 +22,21 @@ class FunctionDef(BaseDefinition):
         for param in signature.parameters.values():
             if param.annotation is not inspect.Parameter.empty:
                 annotation = param.annotation if tree.preserve_forward_references else annotations[param.name]
-                param = param.replace(annotation=tree.get_literal(Node(self.namespace, None, annotation)))
+                param = param.replace(
+                    annotation=tree.get_literal(self.tree.create_node_for_object(self.namespace, None, annotation))
+                )
             if param.default is not inspect.Parameter.empty:
-                param = param.replace(default=tree.get_literal(Node(self.namespace, None, param.default)))
+                param = param.replace(
+                    default=tree.get_literal(self.tree.create_node_for_object(self.namespace, None, param.default))
+                )
             params.append(param)
 
         return_annotation = signature.return_annotation
         if return_annotation is not inspect.Parameter.empty:
             annotation = return_annotation if tree.preserve_forward_references else annotations['return']
-            return_annotation = tree.get_literal(Node(self.namespace, None, annotation))
+            return_annotation = tree.get_literal(self.tree.create_node_for_object(self.namespace, None, annotation))
 
         self.signature = signature.replace(parameters=params, return_annotation=return_annotation)
-        self.docstring = tree.get_docstring(node)
 
     def get_parameter(self, arg_name: str) -> inspect.Parameter:
         return self.signature.parameters.get(arg_name)

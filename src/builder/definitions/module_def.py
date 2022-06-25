@@ -1,7 +1,7 @@
 import builtins
 import inspect
 from collections import defaultdict
-from typing import Any, Dict, Set, Tuple, Optional, Callable, TypeVar, Iterable
+from typing import Dict, Set, Tuple, Optional, Callable, TypeVar, Iterable, Any
 
 from stubmaker.builder.common import (
     Node,
@@ -19,46 +19,25 @@ class ModuleDef(BaseDefinition):
     def __init__(self, node: Node, tree: BaseRepresentationsTreeBuilder):
         super().__init__(node, tree)
 
-        self.docstring = self.tree.get_docstring(self.node)
+        self.members = self.get_members_representations()
 
-        self.members = {}
-        annotations = get_annotations(self.obj, eval_str=not tree.preserve_forward_references)
+    def _is_import_necessary(self, member: BaseRepresentation):
+        if inspect.ismodule(member.obj):
+            return self.tree.module_name != member.name
 
-        members = self.get_representable_members()
+        if isinstance(member.obj, TypeVar):
+            return member.module_name != self.tree.module_name
 
-        for member_name, member in members.items():
-            # check if member is alias
-            if get_type_name(member) != member_name:
-                if member_name in annotations:
-                    self.members[member_name] = self.tree.get_attribute_annotation_definition(Node(
-                        namespace=f'{self.namespace}.{self.name}' if self.namespace else self.name,
-                        name=member_name,
-                        obj=annotations[member_name],
-                    ))
-                else:
-                    self.members[member_name] = self.tree.get_attribute_definition(self.node.get_member(member_name))
-            else:
-                node = self.node.get_member(member_name)
-                definition = self.tree.get_definition(node)
-                self.members[member_name] = definition
-
-    def _is_import_necessary(self, member):
-        if inspect.ismodule(member):
-            return self.tree.module_name != member.__name__
-
-        if isinstance(member, TypeVar):
-            return member.__module__ != self.tree.module_name
-
-        member_name = get_type_name(member)
+        member_name = get_type_name(member.obj)
         if not member_name:
             return False
 
-        return self.tree.module_name != member.__module__ and member_name not in builtins.__dict__
+        return self.tree.module_name != member.module_name and member_name not in builtins.__dict__
 
-    def get_import_module_for_representation(self, child_repr: BaseRepresentation) -> Optional[str]:
-        if isinstance(child_repr, (TypeHintLiteral, TypeVarLiteral, ReferenceLiteral)) and \
-                self._is_import_necessary(child_repr.obj):
-            return child_repr.module
+    def get_import_module_for_representation(self, representation: BaseRepresentation) -> Optional[str]:
+        if isinstance(representation, (TypeHintLiteral, TypeVarLiteral, ReferenceLiteral)) and \
+                self._is_import_necessary(representation):
+            return representation.module_name
 
     def get_imports(
         self,
@@ -83,45 +62,73 @@ class ModuleDef(BaseDefinition):
                 if member_name in self.members:
                     member_repr = self.members[member_name]
                 elif member_name in self.obj.__dict__:
-                    member_repr = self.tree.get_literal(self.node.get_literal_node(self.obj.__dict__[member_name]))
+                    member_repr = self.tree.get_literal(
+                        self.tree.create_node_for_object(self.namespace, None, self.obj.__dict__[member_name])
+                    )
                 else:
                     raise RuntimeError(f'{self.obj.__name__}: {member_name} is specified in __all__'
                                        f' but not found in __dict__ or __annotations__')
                 import_module = self.get_import_module_for_representation(member_repr)
                 if import_module:
-                    from_imports[member_repr.module].add((member_name, None))
+                    from_imports[member_repr.module_name].add((member_name, None))
 
         return imports, from_imports
 
-    def get_module_members(self) -> Dict[str, Any]:
-        members = dict(self.obj.__dict__)
-        for member_name in get_annotations(self.obj, eval_str=not self.tree.preserve_forward_references):
+    def get_public_module_member_objects(self) -> Dict[str, Any]:
+        member_objects = dict(self.obj.__dict__)
+        annotations = get_annotations(self.obj, eval_str=not self.tree.preserve_forward_references)
+        for member_name in annotations:
             # try to add module level attributes with annotations but without value that are specified in __all__
             # (such attributes can't be retrieved from __dict__)
             if member_name in self.obj.__all__:
-                members[member_name] = None
-        return members
+                member_objects[member_name] = None
+        return {
+            member_name: member for member_name, member in member_objects.items() if not member_name.startswith('__')
+        }
 
-    def private_module_members_removed(self, members: Dict[str, Any]) -> Dict[str, Any]:
-        return {member_name: member for member_name, member in members.items() if not member_name.startswith('__')}
-
-    def imported_members_removed(self, members: Dict[str, Any]) -> Dict[str, Any]:
-        required_members = {}
-
+    def _get_members_defined_in_current_module(self, members: Dict[str, BaseRepresentation]):
+        local_members = {}
         for member_name, member in members.items():
-            if inspect.ismodule(member):
+            if member is None or inspect.ismodule(member.obj):
                 continue
 
-            module_name = getattr(member, '__module__', None)
-            if module_name and module_name != self.tree.module_name and member_name == get_type_name(member):
+            if (member.module_name and member.module_name != self.tree.module_name and
+                    member_name == get_type_name(member.obj)):
                 # imported external symbol that is not an alias defined in current module
                 continue
 
-            required_members[member_name] = member
+            local_members[member_name] = member
+        return local_members
 
-        return required_members
+    def get_members_representations(self) -> Dict[str, BaseRepresentation]:
+        member_objects = self.get_public_module_member_objects()
+        annotations = get_annotations(self.obj, eval_str=not self.tree.preserve_forward_references)
+        members = {}
 
-    def get_representable_members(self):
-        members = self.get_module_members()
-        members = self.private_module_members_removed(members)
-        return self.imported_members_removed(members)
+        for member_name in annotations:
+            # try to add module level attributes with annotations but without value that are specified in __all__
+            # (such attributes can't be retrieved from __dict__)
+            if member_name in self.obj.__all__:
+                member_objects[member_name] = None
+
+        for member_name, member_object in member_objects.items():
+            # check if member is alias
+            if get_type_name(member_object) != member_name:
+                if member_name in annotations:
+                    members[member_name] = self.tree.get_attribute_annotation_definition(
+                        self.tree.create_node_for_object(
+                            namespace=f'{self.namespace}.{self.name}' if self.namespace else self.name,
+                            name=member_name,
+                            obj=annotations[member_name],
+                        )
+                    )
+                else:
+                    members[member_name] = self.tree.get_attribute_definition(
+                        self.get_node_for_member(member_name)
+                    )
+            else:
+                node = self.get_node_for_member(member_name)
+                definition = self.tree.get_definition(node)
+                members[member_name] = definition
+
+        return self._get_members_defined_in_current_module(members)

@@ -15,10 +15,11 @@ def main():
     parser.add_argument('--src-root', type=os.path.abspath, required=True, help='Path to source files to process')
     parser.add_argument('--output-dir', type=os.path.abspath, required=True)
     parser.add_argument(
-        '--objects-aliases', type=os.path.abspath, required=False,
-        help='A dictionary from python objects to fullnames (in <module_path>.<object_name> format). Such objects '
-             'names and modules will not be deduced based on runtime data and provided names and modules will be used '
-             'instead. Provided python file must have OBJECTS_ALIASES dictionary on module level.'
+        '--described-objects', type=os.path.abspath, required=False,
+        help='A dictionary from python objects to tuples consisting of module and qualname for each object (e.g. '
+             "ModuleType: (types, ModuleType). Such objects' names and modules will not be deduced based on runtime "
+             'data and provided names and modules will be used instead. Provided python file must have '
+             'DESCRIBED_OBJECTS dictionary on the module level.'
     )
     parser.add_argument(
         '--modules-aliases', type=os.path.abspath, required=False,
@@ -30,16 +31,16 @@ def main():
     # another version of the module is installed in the system
     override_module_import_path(args.module_root, args.src_root)
 
-    if args.objects_aliases:
+    if args.described_objects:
         spec = importlib.util.spec_from_file_location(
-            "objects_aliases", os.path.join(os.getcwd(), args.objects_aliases)
+            "described_objects", os.path.join(os.getcwd(), args.described_objects)
         )
-        objects_aliases = importlib.util.module_from_spec(spec)
-        sys.modules["objects_aliases"] = objects_aliases
-        spec.loader.exec_module(objects_aliases)
-        objects_aliases = getattr(objects_aliases, 'OBJECTS_ALIASES', None)
-        if objects_aliases is None:
-            raise RuntimeError('OBJECT_ALIASES dict should be defined in objects-modules-aliases py file')
+        described_objects = importlib.util.module_from_spec(spec)
+        sys.modules["described_objects"] = described_objects
+        spec.loader.exec_module(described_objects)
+        described_objects = getattr(described_objects, 'DESCRIBED_OBJECTS', None)
+        if described_objects is None:
+            raise RuntimeError('DESCRIBED_OBJECTS dict should be defined in python file specified in described-objects')
 
     if args.modules_aliases:
         with open(args.modules_aliases) as f:
@@ -64,7 +65,7 @@ def main():
                 module_name=module_name,
                 module=module,
                 module_root=args.module_root,
-                described_objects=args.objects_aliases and objects_aliases,
+                described_objects=args.described_objects and described_objects,
                 modules_aliases_mapping=args.modules_aliases and modules_aliases_mapping
             )
 

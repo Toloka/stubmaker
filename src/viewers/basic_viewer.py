@@ -4,9 +4,9 @@ __all__ = [
 
 import enum
 import inspect
-from typing import ForwardRef, TypeVar
+from typing import ForwardRef
 
-from stubmaker.builder.common import BaseRepresentation, Node, BaseDefinition
+from stubmaker.builder.common import BaseRepresentation, BaseDefinition
 from stubmaker.builder.definitions import (
     AttributeAnnotationDef,
     AttributeDef,

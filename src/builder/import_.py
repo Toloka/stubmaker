@@ -4,9 +4,8 @@ import sys
 from importlib import import_module
 from importlib.abc import MetaPathFinder
 from importlib.machinery import ModuleSpec
-from importlib.util import find_spec, resolve_name, spec_from_file_location
+from importlib.util import resolve_name, spec_from_file_location
 from pkgutil import walk_packages
-from typing import Optional, Tuple
 
 from _frozen_importlib_external import _NamespaceLoader
 

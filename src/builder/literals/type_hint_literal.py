@@ -2,7 +2,6 @@ import sys
 import typing
 from typing import Union, Optional, Callable
 
-import typing_inspect
 from stubmaker.builder.common import BaseLiteral, BaseRepresentationsTreeBuilder, Node
 
 

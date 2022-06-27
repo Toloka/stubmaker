@@ -1,6 +1,9 @@
 import inspect
 from functools import cached_property
-from typing import Optional, get_type_hints
+from typing import Optional, get_type_hints, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from stubmaker.builder.representations_tree_builder import RepresentationsTreeBuilder
 
 
 class Node:

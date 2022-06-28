@@ -10,7 +10,7 @@ from stubmaker.builder.common import BaseRepresentation, BaseDefinition
 from stubmaker.builder.definitions import (
     AttributeAnnotationDef,
     AttributeDef,
-    ClassDef,
+    BaseClassDef,
     MetaclassDef,
     DocumentationDef,
     EnumDef,
@@ -41,7 +41,7 @@ class BasicViewer(ViewerBase):
     def view_attribute_definition(self, attribute_def: AttributeDef):
         raise NotImplementedError
 
-    def view_class_definition(self, class_def: ClassDef):
+    def view_base_class_definition(self, class_def: BaseClassDef):
         raise NotImplementedError
 
     def view_documentation_definition(self, documentation_def: DocumentationDef):

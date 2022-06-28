@@ -1,4 +1,4 @@
-import collections
+import collections.abc
 import enum
 import inspect
 from contextvars import ContextVar
@@ -76,7 +76,7 @@ class RepresentationsTreeBuilder(BaseRepresentationsTreeBuilder):
         self.module_rep = self.get_module_definition(self.create_node_for_object('', '', module))
 
     def create_node_for_object(self, namespace, name, obj):
-        if isinstance(obj, collections.Hashable):
+        if isinstance(obj, collections.abc.Hashable):
             module_name = self.object_module_mapping.get(obj)
             qualname = self.object_qualname_mapping.get(obj)
         else:

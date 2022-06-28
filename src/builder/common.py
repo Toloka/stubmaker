@@ -1,5 +1,4 @@
 import inspect
-from functools import cached_property
 from typing import Optional, get_type_hints, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -81,7 +80,7 @@ class BaseDefinition(BaseRepresentation):
             obj=getattr(self.obj, member_name),
         )
 
-    @cached_property
+    @property
     def docstring(self) -> Optional['BaseDefinition']:
         if getattr(self.obj, '__doc__') is not None:
             return self.tree.get_documentation_definition(self.get_node_for_member('__doc__'))

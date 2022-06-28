@@ -11,6 +11,7 @@ from stubmaker.builder.definitions import (
     AttributeAnnotationDef,
     AttributeDef,
     BaseClassDef,
+    ClassDef,
     MetaclassDef,
     DocumentationDef,
     EnumDef,

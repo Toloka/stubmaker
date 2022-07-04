@@ -25,6 +25,11 @@ from typing_inspect import is_generic_type
 
 class RepresentationsTreeBuilder(BaseRepresentationsTreeBuilder):
 
+    DEFAULT_DESCRIBED_OBJECTS = {
+        ModuleType: ('types', 'ModuleType'),
+        ContextVar: ('contextvars', 'ContextVar'),
+    }
+
     def __init__(
         self,
         module_name, module,
@@ -40,9 +45,9 @@ class RepresentationsTreeBuilder(BaseRepresentationsTreeBuilder):
             module: current module object.
             module_root: current module root package. Used in imports.
             modules_aliases_mapping: a dictionary of modules aliases to use.
-            objects_with_redefined_modules: a dictionary from python objects to fullnames (in
-                <module_path>.<qualname> format). Such objects' names and modules will not be deduced based on
-                runtime data and provided names and modules will be used instead.
+            described_objects: a dictionary from python objects to tuples consisting of module and qualname for each
+                object (e.g. ModuleType: ("types", "ModuleType")). Such objects' names and modules will not be deduced
+                based on runtime data and provided names and modules will be used instead.
             preserve_forward_references: if True forward references will not be evaluated in resulting expressions.
         """
 
@@ -53,20 +58,9 @@ class RepresentationsTreeBuilder(BaseRepresentationsTreeBuilder):
                 '_asyncio': 'asyncio',
             }
 
-        if described_objects is None:
-            self.object_qualname_mapping = {
-                ModuleType: 'ModuleType',
-                ContextVar: 'ContextVar',
-            }
-            self.object_module_mapping = {
-                ModuleType: 'types',
-                ContextVar: 'contextvars',
-            }
-        else:
-            self.object_qualname_mapping = {obj: qualname for obj, (_, qualname) in
-                                            described_objects.items()}
-            self.object_module_mapping = {obj: module for obj, (module, _) in
-                                          described_objects.items()}
+        described_objects = described_objects or self.DEFAULT_DESCRIBED_OBJECTS
+        self.object_qualname_mapping = {obj: qualname for obj, (_, qualname) in described_objects.items()}
+        self.object_module_mapping = {obj: module for obj, (module, _) in described_objects.items()}
 
         self.module_name = module_name
         self.module_root = module_root or module_name

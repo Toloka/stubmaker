@@ -16,10 +16,10 @@ def main():
     parser.add_argument('--output-dir', type=os.path.abspath, required=True)
     parser.add_argument(
         '--described-objects', type=os.path.abspath, required=False,
-        help='A dictionary from python objects to tuples consisting of module and qualname for each object (e.g. '
-             "ModuleType: (types, ModuleType). Such objects' names and modules will not be deduced based on runtime "
-             'data and provided names and modules will be used instead. Provided python file must have '
-             'DESCRIBED_OBJECTS dictionary on the module level.'
+        help='A path to a python file containing a dictionary from python objects to tuples consisting of module and '
+             'qualname for each object (e.g. ModuleType: ("types", "ModuleType")). Such objects\' names and modules '
+             'will not be deduced based on runtime data and provided names and modules will be used instead. Provided '
+             'python file must have DESCRIBED_OBJECTS dictionary on the module level.'
     )
     parser.add_argument(
         '--modules-aliases', type=os.path.abspath, required=False,
@@ -33,10 +33,10 @@ def main():
 
     if args.described_objects:
         spec = importlib.util.spec_from_file_location(
-            "described_objects", os.path.join(os.getcwd(), args.described_objects)
+            'described_objects', os.path.join(os.getcwd(), args.described_objects)
         )
         described_objects = importlib.util.module_from_spec(spec)
-        sys.modules["described_objects"] = described_objects
+        sys.modules['described_objects'] = described_objects
         spec.loader.exec_module(described_objects)
         described_objects = getattr(described_objects, 'DESCRIBED_OBJECTS', None)
         if described_objects is None:

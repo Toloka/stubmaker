@@ -1,4 +1,5 @@
 import os
+
 import pytest
 import subprocess
 
@@ -6,15 +7,8 @@ from functools import partial
 from setuptools import findall
 
 
-try:
-    from yatest.common import binary_path, source_path
-except ImportError:
-    TEST_DIR = os.path.dirname(__file__)
-    STUBMAKER_CMD = 'stubmaker'
-else:
-    TEST_DIR = source_path('library/python/stubmaker/tests')
-    STUBMAKER_CMD = binary_path('library/python/stubmaker/stubmaker')
-
+TEST_DIR = os.path.dirname(__file__)
+STUBMAKER_CMD = 'stubmaker'
 
 # Returns paths relative to test_package
 get_input_path = partial(os.path.join, TEST_DIR, 'test_package')
@@ -27,16 +21,20 @@ get_expected_stub = partial(os.path.join, TEST_DIR, 'expected_stubs')
 def get_output_path(tmpdir_factory):
     """Applies stubmaker and returns results dir"""
     output_path = str(tmpdir_factory.mktemp('output'))
-    subprocess.run(
+    process = subprocess.run(
         [
             STUBMAKER_CMD,
             '--module-root', 'test_package',
             '--src-root', get_input_path(),
             '--output-dir', output_path,
+            '--described-objects', os.path.join(TEST_DIR, 'test_described_objects.py'),
             '--modules-aliases', os.path.join(TEST_DIR, 'test_modules_aliases.json'),
         ],
-        check=True,
+        stderr=subprocess.PIPE, text=True,
     )
+    if process.returncode != 0:
+        assert process.stderr == ''
+        raise subprocess.CalledProcessError(process.returncode, process.args)
     return partial(os.path.join, output_path)
 
 

@@ -7,7 +7,8 @@ __all__ = [
     'SubpackageClass',
     'module',
     'classes',
-    'external_typevar'
+    'external_typevar',
+    'ClassWithRedefinedModule',
 ]
 import typing
 
@@ -31,3 +32,7 @@ def get_implicit_annotation():
 
 
 external_typevar = typing.TypeVar('external_typevar')
+
+
+class ClassWithRedefinedModule:
+    __module__ = 'fake'

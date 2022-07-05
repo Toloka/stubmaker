@@ -4,4 +4,5 @@
 __all__ = [
     'HiddenClass',
 ]
-from test_package.hidden_module_proxy import HiddenClass
+class HiddenClass:
+    ...

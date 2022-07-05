@@ -5,5 +5,4 @@ This module is supposed to be used via hidden_module_proxy.py in stubs
 __all__ = [
     'HiddenClass',
 ]
-class HiddenClass:
-    ...
+from test_package.hidden_module_proxy import HiddenClass

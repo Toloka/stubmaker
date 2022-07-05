@@ -7,11 +7,12 @@ __all__ = [
     'SubpackageClass',
     'module',
     'classes',
-    'external_typevar'
+    'external_typevar',
+    'ClassWithRedefinedModule',
 ]
 import typing
 
-# should appear in stubs if from ... import ... form because specified in __all__
+# should appear in stubs in from ... import ... form because specified in __all__
 from .test_subpackage import module
 from .test_subpackage import SubpackageClass
 from .classes import SimpleClass
@@ -31,3 +32,7 @@ def get_implicit_annotation():
 
 
 external_typevar = typing.TypeVar('external_typevar')
+
+
+class ClassWithRedefinedModule:
+    __module__ = 'fake'

@@ -5,19 +5,27 @@ __all__ = [
     'SomeChild',
     'UsedInAllClass',
     'Path',
+    'join',
+    'splitext',
+    'attribute_of_type_with_redefined_module_1',
+    'attribute_of_type_with_redefined_module_2',
+    'attribute_of_type_with_redefined_module_3',
 ]
 # Many imports below are useless for stubs. Stub generation should provide only necessary imports for the stub file.
 import os
 import typing
+from contextvars import ContextVar
 
 from pathlib import Path
 from functools import *
+from types import ModuleType
 
-from . classes import SimpleClass, InheritedClass
-from . import docstrings
-from . docstrings import module_function
+from .classes import SimpleClass, InheritedClass
+from . import docstrings, ClassWithRedefinedModule
+from .docstrings import module_function
 from .enums import *
-
+# check "from ... import (...)" form of import in stubs
+from os.path import join, splitext
 
 import pathlib as renamed_pathlib
 
@@ -46,3 +54,8 @@ class UsedByUsedInAllClass(docstrings.SimpleClass):
 
 class UsedInAllClass(UsedByUsedInAllClass):
     pass
+
+
+attribute_of_type_with_redefined_module_1: ModuleType
+attribute_of_type_with_redefined_module_2: ClassWithRedefinedModule
+attribute_of_type_with_redefined_module_3: ContextVar

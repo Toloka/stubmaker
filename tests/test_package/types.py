@@ -1,8 +1,6 @@
 """Module for testing handling of usual types and typing types in stub generation.
 """
 __all__ = [
-    #'GenericClassAlias',
-    #'GenericClassWithTypeVarOverlap',
     'CustomType',
     'ClassWithComplexAttributes',
     'annotated_func',
@@ -11,7 +9,6 @@ __all__ = [
 
 import typing
 import pathlib
-
 
 class CustomType:
     forward_reference_attr: typing.Optional['CustomType']

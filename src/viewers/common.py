@@ -38,7 +38,12 @@ def add_inherited_singledispatchmethod(method_name, implementation_prefix):
     """
 
     def wrapper(cls):
-        setattr(cls, method_name, singledispatchmethod(getattr(cls, method_name)))
+        # If singledispatchmethod is created out of another singledispatchmethod, adding
+        # implementations to one will trigger adding them to another which we don't want
+        # So we try to create a new singledispatchmethod from an underlying __wrapped__
+        method = getattr(cls, method_name)
+        method = method.__wrapped__ if hasattr(method, 'register') else method
+        setattr(cls, method_name, singledispatchmethod(method))
 
         for member_name in dir(cls):
             if member_name == method_name:
@@ -59,3 +64,11 @@ def add_inherited_singledispatchmethod(method_name, implementation_prefix):
 class ViewerBase:
     def view(self, representation: BaseRepresentation):
         raise NotImplementedError
+
+    def iter_over(self, representation: BaseRepresentation):
+        raise NotImplementedError
+
+    def traverse(self, representation: BaseRepresentation):
+        yield representation
+        for child in self.iter_over(representation):
+            yield from self.traverse(child)

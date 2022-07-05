@@ -5,8 +5,6 @@ __all__ = [
     'SimpleClass',
     'InheritedClass',
     'MultipleInheritedClass',
-    'CustomMetaclass',
-    'ClassWithCustomMetaclass',
 ]
 class SomeType:
     ...
@@ -48,11 +46,3 @@ class MultipleInheritedClass(InheritedClass, SimpleClass):
     def staticmethod_to_redefine(): ...
 
     class_attribute: SomeType
-
-
-class CustomMetaclass(type):
-    ...
-
-
-class ClassWithCustomMetaclass:
-    generated_member: str

@@ -22,6 +22,7 @@ setup(
     python_requires='>=3.7.4',
     install_requires=[
         'docstring-parser',
+        'typing_inspect',
     ],
     include_package_data=True,
     entry_points={

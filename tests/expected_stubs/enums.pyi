@@ -8,6 +8,7 @@ __all__ = [
     'EnumSubclassClass',
     'AutoEnum',
     'function_with_enum_value_annotation',
+    'ClassWithNestedEnum',
 ]
 import enum
 
@@ -75,3 +76,13 @@ class IntEnumClass(enum.IntEnum):
 
 
 def function_with_enum_value_annotation(unit: IntEnumClass = IntEnumClass.VALUE_3): ...
+
+
+class ClassWithNestedEnum:
+    class NestedEnum(enum.Enum):
+        """An enumeration.
+        """
+
+        VALUE = 1
+
+    def __init__(self, enum_value=NestedEnum.VALUE): ...

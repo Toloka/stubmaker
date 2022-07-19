@@ -29,24 +29,23 @@ class BaseClassDef(BaseDefinition):
             # to distinguish between methods, classmethods and staticmethods
             member = self.obj.__dict__[member_name]
 
-            node = self.tree.create_node_for_object(
-                namespace=f'{self.namespace}.{self.name}' if self.namespace else self.name if self.name else '',
-                name=member_name,
-                obj=member,
-            )
+            def member_node_factory(obj):
+                return self.tree.create_node_for_object(
+                    namespace=f'{self.namespace}.{self.name}' if self.namespace else self.name if self.name else '',
+                    name=member_name,
+                    obj=obj,
+                )
 
             if isinstance(member, staticmethod):
-                node.obj = member.__func__
-                definition = self.tree.get_static_method_definition(node)
+                definition = self.tree.get_static_method_definition(member_node_factory(member.__func__))
             elif isinstance(member, classmethod):
-                node.obj = member.__func__
-                definition = self.tree.get_class_method_definition(node)
+                definition = self.tree.get_class_method_definition(member_node_factory(member.__func__))
             elif inspect.isfunction(member):
-                definition = self.tree.get_function_definition(node)
+                definition = self.tree.get_function_definition(member_node_factory(member))
             elif inspect.isclass(member) and member.__module__ == self.tree.module_name:
-                definition = self.tree.get_class_definition(node)
+                definition = self.tree.get_class_definition(member_node_factory(member))
             elif isinstance(member, typing.TypeVar):
-                definition = self.tree.get_attribute_definition(node)
+                definition = self.tree.get_attribute_definition(member_node_factory(member))
             else:
                 continue
 

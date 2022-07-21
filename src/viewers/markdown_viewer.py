@@ -9,7 +9,6 @@ import re
 import html
 
 from io import StringIO
-from doctest import DocTestParser, Example
 from itertools import groupby, chain
 from typing import Optional, Callable
 
@@ -59,17 +58,22 @@ def parameter_html_description(desc: str) -> str:
 
 def get_examples_from_docstring(parsed_docstring):
     sio = StringIO()
-    for m in parsed_docstring.meta:
-        if m.args[0] == 'examples':
-            sio.write('\n**Examples:**\n\n')
-            parsed_tokens = filter(None, DocTestParser().parse(m.description))
-            for is_example, values in groupby(parsed_tokens, lambda x: isinstance(x, Example)):
-                if is_example:
-                    sio.write('```python\n')
-                    sio.write(''.join(value.source for value in values))
-                    sio.write('```\n')
-                else:
-                    sio.write(''.join(values))
+    if parsed_docstring.examples:
+        example = parsed_docstring.examples[0]
+        sio.write('\n**Examples:**\n\n')
+        seen_codeblock = False
+        for is_doctest, lines in groupby(
+            example.description.split('\n'), lambda line: line.lstrip().startswith('>>>')
+        ):
+            if is_doctest:
+                sio.write('\n```python\n')
+                sio.write('\n'.join(line.lstrip().lstrip('>>>')[1:] for line in lines))
+                sio.write('\n```\n')
+                seen_codeblock = True
+            else:
+                if seen_codeblock:
+                    lines = list(lines)[1:]
+                sio.write('\n'.join(lines))
 
     cur_value = sio.getvalue()
     if cur_value and not cur_value.endswith('\n'):

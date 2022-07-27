@@ -37,6 +37,7 @@ class FunctionDef(BaseDefinition):
             return_annotation = tree.get_literal(self.tree.create_node_for_object(self.namespace, None, annotation))
 
         self.signature = signature.replace(parameters=params, return_annotation=return_annotation)
+        self.is_async = inspect.iscoroutinefunction(self.obj)
 
     def get_parameter(self, arg_name: str) -> inspect.Parameter:
         return self.signature.parameters.get(arg_name)

@@ -146,6 +146,8 @@ class StubViewer(BasicViewer):
 
         wrapped_signature = wrap_function_signature(signature)
 
+        if function_def.is_async:
+            sio.write('async ')
         if function_def.docstring:
             sio.write(f'def {function_def.name}{wrapped_signature}:\n')
             sio.write(indent(self.view(function_def.docstring)))

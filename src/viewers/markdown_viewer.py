@@ -268,8 +268,13 @@ class MarkdownViewer(BasicViewer):
 
     def view_function_definition(self, function_def: FunctionDef):
         sio = StringIO()
+        sio.write('```python\n')
+        if function_def.is_async:
+            sio.write('async ')
+        sio.write(function_def.name)
+        sio.write(self.get_definition_markdown_signature(function_def))
+        sio.write('\n```\n\n')
 
-        sio.write(f'```python\n{function_def.name}{self.get_definition_markdown_signature(function_def)}\n```\n\n')
         signature = replace_representations_in_signature(function_def.signature, self)
 
         if function_def.docstring:

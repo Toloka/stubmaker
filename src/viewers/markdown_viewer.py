@@ -4,10 +4,10 @@ __all__ = [
     'get_examples_from_docstring',
     'MarkdownViewer',
 ]
+
 import inspect
 import re
-import html
-
+from markdown_it import MarkdownIt
 from io import StringIO
 from itertools import groupby, chain
 from typing import Optional, Callable
@@ -38,22 +38,17 @@ def get_markdown_page(name, full_name, markdown_view, source_link=None):
 
 
 def parameter_html_description(desc: str) -> str:
-    description = html.escape(desc)
-
-    # we need to use <li> tag for list's items instead of *
-    description = re.sub(r'(\n|^)\* ', r'</li><li>', description)
-    # we shoudn't use \n cause it breaks html
-    description = re.sub(r'\n', r' ', description)
-
-    description = f'<p>{description}</p>'
-    description = re.sub(r'Default value:', r'</p><p>Default value:', description)
-
-    # we need to wrap the list in the <ul></ul> tag
-    # here we believe there can be no more than one list in the description
-    description = re.sub(r'(<p>.*?)(</li><li>)', r'\g<1><ul><li>', description)
-    description = re.sub(r'(<li>.*?)(</p>)', r'\g<1></li></ul></p>', description)
-
-    return description
+    md = MarkdownIt()
+    md['block'].ruler.enableOnly(['list', 'paragraph'])
+    md['inline'].ruler.enableOnly([])
+    description = md.render(desc)
+    description = (
+        description
+        .replace("'", '&#x27;')  # markdown-it-py does not escape single quotes
+        .replace('Default value:', '</p><p>Default value:')
+        .replace('\n', ' ')
+    )
+    return description.rstrip()
 
 
 def get_examples_from_docstring(parsed_docstring):

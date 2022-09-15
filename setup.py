@@ -23,6 +23,7 @@ setup(
     install_requires=[
         'docstring-parser',
         'typing_inspect',
+        'markdown-it-py',
     ],
     include_package_data=True,
     entry_points={

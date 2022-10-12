@@ -79,14 +79,17 @@ class StubViewer(BasicViewer):
     def view_attribute_definition(self, attribute_def: AttributeDef):
         return f'{attribute_def.name} = {self.view(attribute_def.value)}\n'
 
+    def _do_need_to_write_metaclass(self, class_def):
+        metaclass_is_type = class_def.metaclass.obj is type  # noqa
+        metaclass_is_inherited = any(class_def.metaclass.obj is type(base) for base in class_def.obj.__bases__)  # noqa
+        has_unimplemeted_abstract_methods = any(getattr(class_def.obj, '__abstractmethods__', []))
+        return not metaclass_is_type and not metaclass_is_inherited or has_unimplemeted_abstract_methods
+
     def view_class_definition(self, class_def: ClassDef):
         sio = StringIO()
 
         sio.write(f'class {class_def.name}')
-
-        metaclass_is_type = class_def.metaclass.obj is type  # noqa
-        metaclass_is_inherited = any(class_def.metaclass.obj is type(base.obj) for base in class_def.bases)  # noqa
-        need_to_write_metaclass = not metaclass_is_type and not metaclass_is_inherited
+        need_to_write_metaclass = self._do_need_to_write_metaclass(class_def)
 
         if class_def.bases and need_to_write_metaclass:
             bases = ', '.join(self.view(base) for base in class_def.bases)
@@ -230,3 +233,12 @@ class StubViewer(BasicViewer):
 
     def view_static_method_definition(self, static_method_definition: StaticMethodDef):
         return f'@staticmethod\n{self.view_function_definition(static_method_definition)}'
+
+    def iter_over_class_definition(self, class_def: ClassDef):
+        if class_def.docstring:
+            yield class_def.docstring
+        if self._do_need_to_write_metaclass(class_def):
+            yield class_def.metaclass
+        yield from class_def.bases
+        yield from class_def.members.values()
+        yield from class_def.annotations.values()

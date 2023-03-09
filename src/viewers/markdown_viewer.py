@@ -2,6 +2,7 @@ __all__ = [
     'get_markdown_page',
     'parameter_html_description',
     'get_examples_from_docstring',
+    'replace_doctest_with_md_code_block',
     'MarkdownViewer',
 ]
 
@@ -56,24 +57,30 @@ def get_examples_from_docstring(parsed_docstring):
     if parsed_docstring.examples:
         example = parsed_docstring.examples[0]
         sio.write('\n**Examples:**\n\n')
-        seen_codeblock = False
-        for is_doctest, lines in groupby(
-            example.description.split('\n'), lambda line: line.lstrip().startswith('>>>')
-        ):
-            if is_doctest:
-                sio.write('\n```python\n')
-                sio.write('\n'.join(line.lstrip().lstrip('>>>')[1:] for line in lines))
-                sio.write('\n```\n')
-                seen_codeblock = True
-            else:
-                if seen_codeblock:
-                    lines = list(lines)[1:]
-                sio.write('\n'.join(lines))
+        sio.write(replace_doctest_with_md_code_block(example.description))
 
     cur_value = sio.getvalue()
     if cur_value and not cur_value.endswith('\n'):
         sio.write('\n')
 
+    return sio.getvalue()
+
+
+def replace_doctest_with_md_code_block(text):
+    sio = StringIO()
+    seen_codeblock = False
+    for is_doctest, lines in groupby(
+        text.split('\n'), lambda line: line.lstrip().startswith('>>>')
+    ):
+        if is_doctest:
+            sio.write('\n```python\n')
+            sio.write('\n'.join(line.lstrip().lstrip('>>>')[1:] for line in lines))
+            sio.write('\n```\n')
+            seen_codeblock = True
+        else:
+            if seen_codeblock:
+                lines = list(lines)[1:]
+            sio.write('\n'.join(lines))
     return sio.getvalue()
 
 
@@ -158,9 +165,9 @@ class MarkdownViewer(BasicViewer):
         if class_def.docstring:
             parsed_docstring = class_def.docstring.get_parsed()
             if parsed_docstring.short_description:
-                class_doc_sio.write(f'{parsed_docstring.short_description}\n\n')
+                class_doc_sio.write(f'{replace_doctest_with_md_code_block(parsed_docstring.short_description)}\n\n')
             if parsed_docstring.long_description:
-                class_doc_sio.write(f'\n{parsed_docstring.long_description}\n\n')
+                class_doc_sio.write(f'\n{replace_doctest_with_md_code_block(parsed_docstring.long_description)}\n\n')
 
             if parsed_docstring.params:
                 class_doc_sio.write('## Parameters Description\n\n')
@@ -206,8 +213,10 @@ class MarkdownViewer(BasicViewer):
                         methods_table_sio.write(_methods_table)
                     need_table = False
 
-                    methods_table_sio.write(f'[{rep.name}]({rep.full_name}.md)| '
-                                            f'{rep.docstring and rep.docstring.get_parsed().short_description}\n')
+                    rep_short_description = rep.docstring and replace_doctest_with_md_code_block(
+                        rep.docstring.get_parsed().short_description
+                    )
+                    methods_table_sio.write(f'[{rep.name}]({rep.full_name}.md)| {rep_short_description}\n')
 
         page_sio.write(
             get_markdown_page(
@@ -232,9 +241,9 @@ class MarkdownViewer(BasicViewer):
         if enum_def.docstring:
             parsed_docstring = enum_def.docstring.get_parsed()
             if parsed_docstring.short_description:
-                sio.write(f'{parsed_docstring.short_description}\n\n')
+                sio.write(f'{replace_doctest_with_md_code_block(parsed_docstring.short_description)}\n\n')
             if parsed_docstring.long_description:
-                sio.write(f'\n{parsed_docstring.long_description}\n\n')
+                sio.write(f'\n{replace_doctest_with_md_code_block(parsed_docstring.long_description)}\n\n')
 
             if parsed_docstring.params:
                 for param in parsed_docstring.params:
@@ -275,9 +284,9 @@ class MarkdownViewer(BasicViewer):
         if function_def.docstring:
             parsed_docstring = function_def.docstring.get_parsed()
             if parsed_docstring.short_description:
-                sio.write(f'{parsed_docstring.short_description}\n\n')
+                sio.write(f'{replace_doctest_with_md_code_block(parsed_docstring.short_description)}\n\n')
             if parsed_docstring.long_description:
-                sio.write(f'\n{parsed_docstring.long_description}\n\n')
+                sio.write(f'\n{replace_doctest_with_md_code_block(parsed_docstring.long_description)}\n\n')
 
             if parsed_docstring.params:
                 sio.write('## Parameters Description\n\n')

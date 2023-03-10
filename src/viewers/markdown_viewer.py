@@ -8,6 +8,8 @@ __all__ = [
 
 import inspect
 import re
+
+from docstring_parser import Docstring
 from markdown_it import MarkdownIt
 from io import StringIO
 from itertools import groupby, chain
@@ -81,6 +83,15 @@ def replace_doctest_with_md_code_block(text):
             if seen_codeblock:
                 lines = list(lines)[1:]
             sio.write('\n'.join(lines))
+    return sio.getvalue()
+
+
+def docstring_description_to_md_description(parsed_docstring: Docstring) -> str:
+    sio = StringIO()
+    if parsed_docstring.short_description:
+        sio.write(f'{replace_doctest_with_md_code_block(parsed_docstring.short_description)}\n\n')
+    if parsed_docstring.long_description:
+        sio.write(f'\n{replace_doctest_with_md_code_block(parsed_docstring.long_description)}\n\n')
     return sio.getvalue()
 
 
@@ -164,10 +175,7 @@ class MarkdownViewer(BasicViewer):
 
         if class_def.docstring:
             parsed_docstring = class_def.docstring.get_parsed()
-            if parsed_docstring.short_description:
-                class_doc_sio.write(f'{replace_doctest_with_md_code_block(parsed_docstring.short_description)}\n\n')
-            if parsed_docstring.long_description:
-                class_doc_sio.write(f'\n{replace_doctest_with_md_code_block(parsed_docstring.long_description)}\n\n')
+            class_doc_sio.write(docstring_description_to_md_description(parsed_docstring))
 
             if parsed_docstring.params:
                 class_doc_sio.write('## Parameters Description\n\n')
@@ -240,10 +248,7 @@ class MarkdownViewer(BasicViewer):
 
         if enum_def.docstring:
             parsed_docstring = enum_def.docstring.get_parsed()
-            if parsed_docstring.short_description:
-                sio.write(f'{replace_doctest_with_md_code_block(parsed_docstring.short_description)}\n\n')
-            if parsed_docstring.long_description:
-                sio.write(f'\n{replace_doctest_with_md_code_block(parsed_docstring.long_description)}\n\n')
+            sio.write(docstring_description_to_md_description(parsed_docstring))
 
             if parsed_docstring.params:
                 for param in parsed_docstring.params:
@@ -283,10 +288,7 @@ class MarkdownViewer(BasicViewer):
 
         if function_def.docstring:
             parsed_docstring = function_def.docstring.get_parsed()
-            if parsed_docstring.short_description:
-                sio.write(f'{replace_doctest_with_md_code_block(parsed_docstring.short_description)}\n\n')
-            if parsed_docstring.long_description:
-                sio.write(f'\n{replace_doctest_with_md_code_block(parsed_docstring.long_description)}\n\n')
+            sio.write(docstring_description_to_md_description(parsed_docstring))
 
             if parsed_docstring.params:
                 sio.write('## Parameters Description\n\n')

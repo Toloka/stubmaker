@@ -15,11 +15,14 @@ def _try_patch_pydantic_init_signature(cls):
     try:
         from pydantic import BaseModel
         if issubclass(cls, BaseModel):
+            parameters = cls.__signature__.parameters.values()
+            has_positional_only = any(param.kind == inspect.Parameter.POSITIONAL_ONLY for param in parameters)
+            if has_positional_only:
+                kind = inspect.Parameter.POSITIONAL_ONLY
+            else:
+                kind = inspect.Parameter.POSITIONAL_OR_KEYWORD
             cls.__init__.__signature__ = cls.__signature__.replace(
-                parameters=[
-                    inspect.Parameter(name='self', kind=inspect.Parameter.POSITIONAL_OR_KEYWORD),
-                    *cls.__signature__.parameters.values(),
-                ],
+                parameters=[inspect.Parameter(name='self', kind=kind), *parameters],
             )
     except ImportError:
         pass

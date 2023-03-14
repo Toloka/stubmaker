@@ -204,7 +204,8 @@ class MarkdownViewer(BasicViewer):
                         str_annotation = self.add_markdown_crosslinks(annotation)
 
                         class_doc_sio.write(
-                            f'`{param.arg_name}`|**{str_annotation or "-"}**|{parameter_html_description(param.description)}\n')
+                            f'`{param.arg_name}`|**{str_annotation or "-"}**|{parameter_html_description(param.description)}\n'
+                        )
 
             class_doc_sio.write(get_examples_from_docstring(parsed_docstring))
 

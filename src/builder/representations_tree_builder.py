@@ -37,6 +37,7 @@ class RepresentationsTreeBuilder(BaseRepresentationsTreeBuilder):
         modules_aliases_mapping=None,
         described_objects=None,
         preserve_forward_references=True,
+        always_include_init=False,
     ):
         """Class used to build the tree of objects and definitions representations for one module.
 
@@ -49,6 +50,8 @@ class RepresentationsTreeBuilder(BaseRepresentationsTreeBuilder):
                 object (e.g. ModuleType: ("types", "ModuleType")). Such objects' names and modules will not be deduced
                 based on runtime data and provided names and modules will be used instead.
             preserve_forward_references: if True forward references will not be evaluated in resulting expressions.
+            always_include_init: If True __init__ will be present in class even if it was actually defined in its base
+                class and remained unchanged.
         """
 
         super().__init__()
@@ -66,6 +69,7 @@ class RepresentationsTreeBuilder(BaseRepresentationsTreeBuilder):
         self.module_root = module_root or module_name
         self.modules_aliases_mapping = modules_aliases_mapping
         self.preserve_forward_references = preserve_forward_references
+        self.always_include_init = always_include_init
 
         self.module_rep = self.get_module_definition(self.create_node_for_object('', '', module))
 
@@ -87,19 +91,6 @@ class RepresentationsTreeBuilder(BaseRepresentationsTreeBuilder):
             qualname=qualname or getattr(obj, '__qualname__', None),
         )
 
-    # Get representation for definitions
-
-    def resolve_namespace_definition(self, node: Node):
-        """Resolve a node to its definition"""
-
-        if inspect.isclass(node.obj):
-            return self.get_class_definition(node)
-
-        if inspect.isfunction(node.obj):
-            return self.get_function_definition(node)
-
-        return self.get_attribute_definition(node)
-
     def map_module_name(self, module_name: Optional[str]) -> Optional[str]:
         if not module_name:
             return None
@@ -109,8 +100,6 @@ class RepresentationsTreeBuilder(BaseRepresentationsTreeBuilder):
             return module_name
         longest_prefix = max(prefixes)[1]
         return self.modules_aliases_mapping[longest_prefix] + module_name[len(longest_prefix):]
-
-    # def resolve_value_literal(sel):
 
     def get_definition(self, node: Node):
         """Resolve a node to its definition"""

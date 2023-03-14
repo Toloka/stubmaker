@@ -11,6 +11,9 @@ class ClassDef(BaseClassDef):
         )
 
     def _is_redefined_in_current_class(self, name):
+        if self.tree.always_include_init and name == '__init__':
+            return True
+
         cls_attr = getattr(self.obj, name)
         super_cls = super(self.obj, self.obj)
         super_cls_attr = getattr(super_cls, name, None)

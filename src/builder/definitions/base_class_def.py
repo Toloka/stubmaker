@@ -8,7 +8,7 @@ from typing_inspect import is_generic_type, get_generic_bases
 
 def _try_patch_pydantic_init_signature(cls):
     """Pydantic implements custom class signature but assigns it only to cls.__signature__ but not
-    cls.__init__.__signature__ due to technical reasons: https://github.com/pydantic/pydantic/issues/1032. This 
+    cls.__init__.__signature__ due to technical reasons: https://github.com/pydantic/pydantic/issues/1032. This
     function tries to detect if the class is pydantic BaseModel and manually assigns signature to __init__.__signature__
     """
 

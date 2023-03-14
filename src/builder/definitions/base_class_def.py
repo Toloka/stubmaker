@@ -1,8 +1,28 @@
 import inspect
 import typing
+from abc import abstractmethod
 
 from stubmaker.builder.common import Node, BaseRepresentationsTreeBuilder, BaseDefinition, get_annotations
 from typing_inspect import is_generic_type, get_generic_bases
+
+
+def _try_patch_pydantic_init_signature(cls):
+    """Pydantic implements custom class signature but assigns it only to cls.__signature__ but not
+    cls.__init__.__signature__ due to technical reasons: https://github.com/pydantic/pydantic/issues/1032. This 
+    function tries to detect if the class is pydantic BaseModel and manually assigns signature to __init__.__signature__
+    """
+
+    try:
+        from pydantic import BaseModel
+        if issubclass(cls, BaseModel):
+            cls.__init__.__signature__ = cls.__signature__.replace(
+                parameters=[
+                    inspect.Parameter(name='self', kind=inspect.Parameter.POSITIONAL_OR_KEYWORD),
+                    *cls.__signature__.parameters.values(),
+                ],
+            )
+    except ImportError:
+        pass
 
 
 class BaseClassDef(BaseDefinition):
@@ -11,6 +31,7 @@ class BaseClassDef(BaseDefinition):
 
     def __init__(self, node: Node, tree: BaseRepresentationsTreeBuilder):
         super().__init__(node, tree)
+        _try_patch_pydantic_init_signature(node.obj)
 
         self.metaclass = self.tree.get_literal(self.tree.create_node_for_object(self.namespace, None, type(self.obj)))
 
@@ -25,9 +46,9 @@ class BaseClassDef(BaseDefinition):
 
         self.members = {}
         for member_name in self.get_public_member_names():
-            # Accessing members through __dict__ is important in order to be able
+            # Accessing members through getattr_static is important in order to be able
             # to distinguish between methods, classmethods and staticmethods
-            member = self.obj.__dict__[member_name]
+            member = inspect.getattr_static(self.obj, member_name)
 
             def member_node_factory(obj):
                 return self.tree.create_node_for_object(
@@ -99,11 +120,6 @@ class BaseClassDef(BaseDefinition):
 
         # return [name for name in dir(self.obj) if not name.startswith('__') and name != '__init__']
 
+    @abstractmethod
     def _is_redefined_in_current_class(self, name):
-        cls_attr = getattr(self.obj, name)
-        super_cls = super(self.obj, self.obj)
-        super_cls_attr = getattr(super_cls, name, None)
-        # check if function descriptor is actually redefined (i.e. classmethods and staticmethods)
-        if hasattr(cls_attr, '__func__') and hasattr(super_cls_attr, '__func__'):
-            return getattr(cls_attr, '__func__') != getattr(super_cls_attr, '__func__')
-        return cls_attr is not super_cls_attr
+        raise NotImplementedError

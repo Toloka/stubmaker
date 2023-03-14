@@ -87,19 +87,6 @@ class RepresentationsTreeBuilder(BaseRepresentationsTreeBuilder):
             qualname=qualname or getattr(obj, '__qualname__', None),
         )
 
-    # Get representation for definitions
-
-    def resolve_namespace_definition(self, node: Node):
-        """Resolve a node to its definition"""
-
-        if inspect.isclass(node.obj):
-            return self.get_class_definition(node)
-
-        if inspect.isfunction(node.obj):
-            return self.get_function_definition(node)
-
-        return self.get_attribute_definition(node)
-
     def map_module_name(self, module_name: Optional[str]) -> Optional[str]:
         if not module_name:
             return None
@@ -109,8 +96,6 @@ class RepresentationsTreeBuilder(BaseRepresentationsTreeBuilder):
             return module_name
         longest_prefix = max(prefixes)[1]
         return self.modules_aliases_mapping[longest_prefix] + module_name[len(longest_prefix):]
-
-    # def resolve_value_literal(sel):
 
     def get_definition(self, node: Node):
         """Resolve a node to its definition"""

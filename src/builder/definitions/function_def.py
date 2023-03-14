@@ -1,8 +1,12 @@
 import inspect
+import logging
 import sys
 from typing import get_type_hints
 
 from stubmaker.builder.common import BaseDefinition, Node, BaseRepresentationsTreeBuilder
+
+
+logger = logging.getLogger(__file__)
 
 
 class FunctionDef(BaseDefinition):
@@ -12,11 +16,13 @@ class FunctionDef(BaseDefinition):
 
         signature = inspect.signature(self.obj)
         if not tree.preserve_forward_references:
+            module = sys.modules.get(self.obj.__module__)
             try:
-                module = sys.modules.get(self.obj.__module__)
                 annotations = get_type_hints(self.obj, module and module.__dict__)
             except NameError as exc:
-                raise RuntimeError(f'Failed to evaluate forward reference for {self.obj}') from exc
+                logger.warning(f'Failed to evaluate forward reference for {self.obj}: {exc}')
+                annotations = self.obj.__annotations__
+                # raise RuntimeError(f'Failed to evaluate forward reference for {self.obj}') from exc
 
         params = []
         for param in signature.parameters.values():

@@ -198,13 +198,16 @@ class MarkdownViewer(BasicViewer):
                             f'`{param.arg_name}`|**{str_annotation or "-"}**|{parameter_html_description(param.description)}\n')
 
                     elif param.args[0] == 'param':
-                        init_member = class_def.members['__init__']
-                        parameter = init_member.get_parameter(param.arg_name)
-                        annotation = parameter and parameter.annotation
-                        str_annotation = self.add_markdown_crosslinks(annotation)
+                        str_annotation = None
+                        if '__init__' in class_def.members:
+                            init_member = class_def.members['__init__']
+                            parameter = init_member.get_parameter(param.arg_name)
+                            annotation = parameter and parameter.annotation
+                            str_annotation = self.add_markdown_crosslinks(annotation)
 
                         class_doc_sio.write(
-                            f'`{param.arg_name}`|**{str_annotation or "-"}**|{parameter_html_description(param.description)}\n')
+                            f'`{param.arg_name}`|**{str_annotation or "-"}**|{parameter_html_description(param.description)}\n'
+                        )
 
             class_doc_sio.write(get_examples_from_docstring(parsed_docstring))
 

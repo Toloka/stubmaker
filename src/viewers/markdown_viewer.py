@@ -68,7 +68,7 @@ def get_examples_from_docstring(parsed_docstring):
     return sio.getvalue()
 
 
-def replace_doctest_with_md_code_block(text):
+def replace_doctest_with_md_code_block(text: str) -> str:
     sio = StringIO()
     seen_codeblock = False
     for is_doctest, lines in groupby(
@@ -222,9 +222,7 @@ class MarkdownViewer(BasicViewer):
                         methods_table_sio.write(_methods_table)
                     need_table = False
 
-                    rep_short_description = rep.docstring and replace_doctest_with_md_code_block(
-                        rep.docstring.get_parsed().short_description
-                    )
+                    rep_short_description = rep.docstring and rep.docstring.get_parsed().short_description
                     methods_table_sio.write(f'[{rep.name}]({rep.full_name}.md)| {rep_short_description}\n')
 
         page_sio.write(

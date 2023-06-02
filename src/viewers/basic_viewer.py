@@ -175,20 +175,27 @@ class BasicViewer(ViewerBase):
         return ids
 
     def get_used_members_ids(self, module_def):
-        # traverse to get actually used representations
         used_object_ids = set()
+        # initialize used_object_ids with definitions from __all__ (and the __all__ definition itself)
         for representation in self.iter_over(module_def):
             if representation.name != '__all__' and representation.name not in module_def.obj.__all__:
                 continue
 
             used_object_ids.update(self.get_subtree_ids(representation))
 
-        # traverse one more time to add representations that have nested definitions that are used by used
-        # representations.
-        for representation in self.iter_over(module_def):
-            for child_rep in self.traverse(representation):
-                if isinstance(child_rep, BaseDefinition) and child_rep.id in used_object_ids:
-                    used_object_ids.update(self.get_subtree_ids(representation))
-                    break
+        # grow used_object_ids with new definitions until it converges: present definitions may reference literals that
+        # reference other definitions in the same module or imports, which in their turn may reference other literals
+        converged = False
+        while not converged:
+            new_objects_ids = set()
+
+            for representation in self.iter_over(module_def):
+                for child_rep in self.traverse(representation):
+                    if isinstance(child_rep, BaseDefinition) and child_rep.id in used_object_ids:
+                        new_objects_ids.update(self.get_subtree_ids(representation))
+                        break
+
+            converged = new_objects_ids.issubset(used_object_ids)
+            used_object_ids.update(new_objects_ids)
 
         return used_object_ids

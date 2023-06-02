@@ -33,11 +33,19 @@ class SomeChild(test_package.classes.InheritedClass):
     class_attribute: test_package.classes.SomeType
 
 
-class UsedByUsedInAllClass(test_package.docstrings.SimpleClass):
+class Base1(test_package.docstrings.SimpleClass):
     ...
 
 
-class UsedInAllClass(UsedByUsedInAllClass):
+class Base2(Base1):
+    ...
+
+
+class Base3(Base2):
+    ...
+
+
+class UsedInAllClass(Base3):
     ...
 
 

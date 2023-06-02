@@ -48,11 +48,19 @@ class NotUsedInAllClass:
 
 
 # should appear in stubs. also should cause docstrings module import
-class UsedByUsedInAllClass(docstrings.SimpleClass):
+class Base1(docstrings.SimpleClass):
     pass
 
 
-class UsedInAllClass(UsedByUsedInAllClass):
+class Base2(Base1):
+    pass
+
+
+class Base3(Base2):
+    pass
+
+
+class UsedInAllClass(Base3):
     pass
 
 

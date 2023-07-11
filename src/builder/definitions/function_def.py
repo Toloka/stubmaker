@@ -19,7 +19,7 @@ class FunctionDef(BaseDefinition):
             module = sys.modules.get(self.obj.__module__)
             try:
                 annotations = get_type_hints(self.obj, module and module.__dict__)
-            except NameError as exc:
+            except (NameError, TypeError) as exc:
                 logger.warning(f'Failed to evaluate forward reference for {self.obj}: {exc}')
                 annotations = self.obj.__annotations__
 

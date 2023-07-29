@@ -1,3 +1,32 @@
+[project]
+name = 'stubmaker'
+authors = [
+    { name = 'Vladimir Losev', email = 'losev@yandex-team.ru' },
+]
+description = 'Tool for generating python stubs'
+version = '0.0.3'
+readme = 'README.md'
+requires-python = '>=3.7.4, <3.11'
+dependencies = [
+    'docstring-parser',
+    'typing_inspect',
+    'markdown-it-py',
+]
+
+[project.scripts]
+stubmaker = 'make_stubs:main'
+
+[tool.ruff]
+select = ['E', 'W', 'F', 'Q']
+line-length = 120
+
+[tool.ruff.flake8-quotes]
+inline-quotes = 'single'
+
+[tool.black]
+line-length = 120
+skip-string-normalization = true
+
 [build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ['setuptools', 'wheel']
+build-backend = 'setuptools.build_meta'

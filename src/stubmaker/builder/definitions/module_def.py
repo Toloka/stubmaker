@@ -15,7 +15,6 @@ from stubmaker.builder.literals import TypeHintLiteral, TypeVarLiteral, Referenc
 
 
 class ModuleDef(BaseDefinition):
-
     def __init__(self, node: Node, tree: BaseRepresentationsTreeBuilder):
         super().__init__(node, tree)
 
@@ -35,13 +34,13 @@ class ModuleDef(BaseDefinition):
         return self.tree.module_name != member.module_name and member_name not in builtins.__dict__
 
     def get_import_module_for_representation(self, representation: BaseRepresentation) -> Optional[str]:
-        if isinstance(representation, (TypeHintLiteral, TypeVarLiteral, ReferenceLiteral)) and \
-                self._is_import_necessary(representation):
+        if isinstance(
+            representation, (TypeHintLiteral, TypeVarLiteral, ReferenceLiteral)
+        ) and self._is_import_necessary(representation):
             return representation.module_name
 
     def get_imports(
-        self,
-        used_object_ids: Set[int], traverse_method: Callable[[BaseRepresentation], Iterable[BaseRepresentation]]
+        self, used_object_ids: Set[int], traverse_method: Callable[[BaseRepresentation], Iterable[BaseRepresentation]]
     ) -> Tuple[Set[str], Dict[str, Set[Tuple[str, Optional[str]]]]]:
         imports = set()
         from_imports = defaultdict(set)
@@ -66,8 +65,10 @@ class ModuleDef(BaseDefinition):
                         self.tree.create_node_for_object(self.namespace, None, self.obj.__dict__[member_name])
                     )
                 else:
-                    raise RuntimeError(f'{self.obj.__name__}: {member_name} is specified in __all__'
-                                       f' but not found in __dict__ or __annotations__')
+                    raise RuntimeError(
+                        f'{self.obj.__name__}: {member_name} is specified in __all__'
+                        f' but not found in __dict__ or __annotations__'
+                    )
                 import_module = self.get_import_module_for_representation(member_repr)
                 if import_module:
                     from_imports[member_repr.module_name].add((member_name, None))
@@ -92,8 +93,11 @@ class ModuleDef(BaseDefinition):
             if member is None or inspect.ismodule(member.obj):
                 continue
 
-            if (member.module_name and member.module_name != self.tree.module_name and
-                    member_name == get_type_name(member.obj)):
+            if (
+                member.module_name
+                and member.module_name != self.tree.module_name
+                and member_name == get_type_name(member.obj)
+            ):
                 # imported external symbol that is not an alias defined in current module
                 continue
 
@@ -123,9 +127,7 @@ class ModuleDef(BaseDefinition):
                         )
                     )
                 else:
-                    members[member_name] = self.tree.get_attribute_definition(
-                        self.get_node_for_member(member_name)
-                    )
+                    members[member_name] = self.tree.get_attribute_definition(self.get_node_for_member(member_name))
             else:
                 node = self.get_node_for_member(member_name)
                 definition = self.tree.get_definition(node)

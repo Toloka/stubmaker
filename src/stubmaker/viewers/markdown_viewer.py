@@ -46,8 +46,7 @@ def parameter_html_description(desc: str) -> str:
     md['inline'].ruler.enableOnly([])
     description = md.render(desc)
     description = (
-        description
-        .replace("'", '&#x27;')  # markdown-it-py does not escape single quotes
+        description.replace("'", '&#x27;')  # markdown-it-py does not escape single quotes
         .replace('Default value:', '</p><p>Default value:')
         .replace('\n', ' ')
     )
@@ -71,9 +70,7 @@ def get_examples_from_docstring(parsed_docstring):
 def replace_doctest_with_md_code_block(text: str) -> str:
     sio = StringIO()
     seen_codeblock = False
-    for is_doctest, lines in groupby(
-        text.split('\n'), lambda line: line.lstrip().startswith('>>>')
-    ):
+    for is_doctest, lines in groupby(text.split('\n'), lambda line: line.lstrip().startswith('>>>')):
         if is_doctest:
             sio.write('\n```python\n')
             sio.write('\n'.join(line.lstrip().lstrip('>>>')[1:] for line in lines))
@@ -128,8 +125,9 @@ class MarkdownViewer(BasicViewer):
             if member.id not in used_object_ids:
                 continue
             if (
-                    isinstance(member, (BaseClassDef, EnumDef)) or
-                    isinstance(member, FunctionDef) and self.is_markdown_needed_for_function(member)
+                isinstance(member, (BaseClassDef, EnumDef))
+                or isinstance(member, FunctionDef)
+                and self.is_markdown_needed_for_function(member)
             ):
                 yield member.full_name, self.view(member)
 
@@ -195,7 +193,9 @@ class MarkdownViewer(BasicViewer):
                             str_annotation = self.add_markdown_crosslinks(annotation)
 
                         class_doc_sio.write(
-                            f'`{param.arg_name}`|**{str_annotation or "-"}**|{parameter_html_description(param.description)}\n')
+                            f'`{param.arg_name}`|**{str_annotation or "-"}**|'
+                            f'{parameter_html_description(param.description)}\n'
+                        )
 
                     elif param.args[0] == 'param':
                         init_member = class_def.members['__init__']
@@ -204,7 +204,8 @@ class MarkdownViewer(BasicViewer):
                         str_annotation = self.add_markdown_crosslinks(annotation)
 
                         class_doc_sio.write(
-                            f'`{param.arg_name}`|**{str_annotation or "-"}**|{parameter_html_description(param.description)}\n'
+                            f'`{param.arg_name}`|**{str_annotation or "-"}**|'
+                            f'{parameter_html_description(param.description)}\n'
                         )
 
             class_doc_sio.write(get_examples_from_docstring(parsed_docstring))
@@ -216,7 +217,6 @@ class MarkdownViewer(BasicViewer):
         if class_def.members:
             for rep in sorted(class_def.members.values(), key=lambda x: x.name):
                 if isinstance(rep, FunctionDef) and self.is_markdown_needed_for_function(rep):
-
                     if need_table:
                         methods_table_sio.write('## Methods Summary\n\n')
                         methods_table_sio.write(_methods_table)
@@ -227,8 +227,10 @@ class MarkdownViewer(BasicViewer):
 
         page_sio.write(
             get_markdown_page(
-                class_def.name, class_def.full_name, class_doc_sio.getvalue(),
-                source_link=self.source_link_finder(class_def) if self.source_link_finder else None
+                class_def.name,
+                class_def.full_name,
+                class_doc_sio.getvalue(),
+                source_link=self.source_link_finder(class_def) if self.source_link_finder else None,
             )
         )
         page_sio.write(methods_table_sio.getvalue())
@@ -258,18 +260,20 @@ class MarkdownViewer(BasicViewer):
             sio.write(_attributes_table)
             for name, literal in enum_def.enum_dict.items():
                 description = params_description.get(name, '')
-                sio.write(
-                    f'`{name}`|{self.view(literal)}|{parameter_html_description(description)}\n')
+                sio.write(f'`{name}`|{self.view(literal)}|{parameter_html_description(description)}\n')
 
         return get_markdown_page(
-            enum_def.name, enum_def.full_name, sio.getvalue(),
-            source_link=self.source_link_finder(enum_def) if self.source_link_finder else None
+            enum_def.name,
+            enum_def.full_name,
+            sio.getvalue(),
+            source_link=self.source_link_finder(enum_def) if self.source_link_finder else None,
         )
 
     def get_definition_markdown_signature(self, function_def: FunctionDef):
         signature = replace_representations_in_signature(function_def.signature, self)
-        if not signature.return_annotation or \
-                (signature.return_annotation is not inspect.Parameter.empty and not signature.return_annotation.name):
+        if not signature.return_annotation or (
+            signature.return_annotation is not inspect.Parameter.empty and not signature.return_annotation.name
+        ):
             signature = signature.replace(return_annotation=inspect.Parameter.empty)
         wrapped_signature = wrap_function_signature(signature)
         return wrapped_signature
@@ -293,12 +297,16 @@ class MarkdownViewer(BasicViewer):
                 sio.write('## Parameters Description\n\n')
                 sio.write(self._ATTRIBUTES_TABLE)
                 for param in parsed_docstring.params:
-                    annotation = function_def.signature.parameters.get(param.arg_name) and signature.parameters[
-                        param.arg_name].annotation
+                    annotation = (
+                        function_def.signature.parameters.get(param.arg_name)
+                        and signature.parameters[param.arg_name].annotation
+                    )
                     str_annotation = self.add_markdown_crosslinks(annotation)
 
                     sio.write(
-                        f'`{param.arg_name}`|**{str_annotation or "-"}**|{parameter_html_description(param.description)}\n')
+                        f'`{param.arg_name}`|**{str_annotation or "-"}**|'
+                        f'{parameter_html_description(param.description)}\n'
+                    )
 
             if parsed_docstring.returns:
                 ret = parsed_docstring.returns
@@ -321,8 +329,10 @@ class MarkdownViewer(BasicViewer):
             sio.write(get_examples_from_docstring(parsed_docstring))
 
         return get_markdown_page(
-            function_def.name, function_def.full_name, sio.getvalue(),
-            source_link=self.source_link_finder(function_def) if self.source_link_finder else None
+            function_def.name,
+            function_def.full_name,
+            sio.getvalue(),
+            source_link=self.source_link_finder(function_def) if self.source_link_finder else None,
         )
 
     def view_module_definition(self, module_def: ModuleDef):

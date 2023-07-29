@@ -38,10 +38,7 @@ def _split_str_signature_by_params(signature: inspect.Signature) -> Tuple[str, L
 
 
 def wrap_function_signature(
-    signature: inspect.Signature,
-    max_args_on_line: int = 1,
-    min_args_to_wrap: int = 2,
-    wrap_self: bool = True
+    signature: inspect.Signature, max_args_on_line: int = 1, min_args_to_wrap: int = 2, wrap_self: bool = True
 ) -> str:
     if len(signature.parameters) <= min_args_to_wrap:
         return str(signature)
@@ -60,7 +57,7 @@ def wrap_function_signature(
         start_from = 1
 
     for line_start in range(start_from, len(params_str), max_args_on_line):
-        new_line = '\n' + ', '.join(params_str[line_start:line_start + max_args_on_line])
+        new_line = '\n' + ', '.join(params_str[line_start : line_start + max_args_on_line])
         wrapped_params_str.append(new_line)
 
     return f'{prefix}{indent(",".join(wrapped_params_str))}\n{postfix}'

@@ -14,6 +14,7 @@ def _try_patch_pydantic_init_signature(cls):
 
     try:
         from pydantic import BaseModel
+
         if issubclass(cls, BaseModel):
             parameters = cls.__signature__.parameters.values()
             has_positional_only = any(param.kind == inspect.Parameter.POSITIONAL_ONLY for param in parameters)
@@ -29,7 +30,6 @@ def _try_patch_pydantic_init_signature(cls):
 
 
 class BaseClassDef(BaseDefinition):
-
     # TODO:  support properties
 
     def __init__(self, node: Node, tree: BaseRepresentationsTreeBuilder):
@@ -96,7 +96,6 @@ class BaseClassDef(BaseDefinition):
         names = set()
 
         for name in dir(cls):
-
             if name.startswith('__') and not inspect.isfunction(getattr(cls, name, None)):
                 continue
 

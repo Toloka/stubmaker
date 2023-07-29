@@ -32,7 +32,6 @@ from stubmaker.viewers.util import (
 @add_inherited_singledispatchmethod(method_name='iter_over', implementation_prefix='iter_over')
 @add_inherited_singledispatchmethod(method_name='view', implementation_prefix='view_')
 class StubViewer(BasicViewer):
-
     class ModuleContext:
         def __init__(self, module_def: ModuleDef, viewer: 'StubViewer'):
             self.module_def = module_def
@@ -63,7 +62,7 @@ class StubViewer(BasicViewer):
         definition = self.module_context.object_id_to_definition.get(type_var_lit.id)
         if definition:
             prefix = get_common_namespace_prefix(type_var_lit.node.namespace, definition.namespace)
-            return definition.namespace[len(prefix):] + definition.name
+            return definition.namespace[len(prefix) :] + definition.name
 
         # consider TypeVar being imported from other module
         imported_from_module = os.sys.modules[type_var_lit.obj.__module__]
@@ -172,7 +171,7 @@ class StubViewer(BasicViewer):
             # all
             if hasattr(module_def.obj, '__all__'):
                 if module_def.obj.__all__:
-                    all_value = (',\n'.join(f"{token!r}" for token in module_def.obj.__all__))
+                    all_value = ',\n'.join(f'{token!r}' for token in module_def.obj.__all__)
                     sio.write(f'__all__ = [\n{indent(all_value)},\n]\n')
                 else:
                     sio.write('__all__: list = []\n')
@@ -212,8 +211,7 @@ class StubViewer(BasicViewer):
 
     def _write_from_import(self, module_name: str, names: List[Tuple[str, Optional[str]]], sio: StringIO):
         if len(names) > 1:
-            names = ',\n'.join(
-                f'{name} as {import_as}' if import_as else name for name, import_as in names)
+            names = ',\n'.join(f'{name} as {import_as}' if import_as else name for name, import_as in names)
             sio.write(f'from {module_name} import (\n{indent(names)},\n)\n')
         else:
             names = ', '.join(f'{name} as {import_as}' if import_as else name for name, import_as in names)

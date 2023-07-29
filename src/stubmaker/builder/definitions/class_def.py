@@ -6,8 +6,9 @@ from .base_class_def import BaseClassDef
 class ClassDef(BaseClassDef):
     def get_public_member_names(self):
         yield from (
-            name for name in super().get_public_member_names() if not name.startswith('_')
-                                                                  or name.startswith('__') and name.endswith('__')
+            name
+            for name in super().get_public_member_names()
+            if not name.startswith('_') or name.startswith('__') and name.endswith('__')
         )
 
     def _is_redefined_in_current_class(self, name):
@@ -46,8 +47,8 @@ class ClassDef(BaseClassDef):
                         (param.annotation, param.default) for param_name, param in right_signature.parameters.items()
                     ]
                     if (
-                        left_params_descriptor == right_params_descriptor and
-                        left_signature.return_annotation == right_signature.return_annotation
+                        left_params_descriptor == right_params_descriptor
+                        and left_signature.return_annotation == right_signature.return_annotation
                     ):
                         return True
         return left is right

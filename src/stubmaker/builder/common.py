@@ -19,7 +19,11 @@ class Node:
 
     def __init__(
         self,
-        namespace: str, name: Optional[str], obj, module_name: Optional[str], qualname: Optional[str],
+        namespace: str,
+        name: Optional[str],
+        obj,
+        module_name: Optional[str],
+        qualname: Optional[str],
     ):
         self.namespace = namespace
         self.name = name
@@ -33,7 +37,6 @@ class Node:
 
 
 class BaseRepresentation:
-
     def __init__(self, node: Node, tree: 'RepresentationsTreeBuilder'):
         self.node = node
         self.tree = tree
@@ -72,7 +75,6 @@ class BaseLiteral(BaseRepresentation):
 
 
 class BaseDefinition(BaseRepresentation):
-
     def get_node_for_member(self, member_name: str) -> Node:
         return self.tree.create_node_for_object(
             namespace=f'{self.namespace}.{self.name}' if self.namespace else self.name if self.name else '',
@@ -88,7 +90,6 @@ class BaseDefinition(BaseRepresentation):
 
 
 class BaseRepresentationsTreeBuilder:
-
     # Helper methods
 
     def create_node_for_object(self, namespace, name, obj) -> Node:

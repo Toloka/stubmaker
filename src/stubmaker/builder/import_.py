@@ -11,13 +11,11 @@ from _frozen_importlib_external import _NamespaceLoader
 
 
 class SourceFinder(MetaPathFinder):
-
     def __init__(self, module_root, sources_path):
         self.sources_path = sources_path
         self.module_root = module_root
 
     def find_spec(self, fullname, path, target=None):
-
         # To absolute import
         fullname = resolve_name(fullname, path)
 
@@ -25,7 +23,7 @@ class SourceFinder(MetaPathFinder):
         if fullname == self.module_root:
             path_prefix = self.sources_path
         elif fullname.startswith(self.module_root + '.'):
-            tokens = fullname[len(self.module_root) + 1:].split('.')
+            tokens = fullname[len(self.module_root) + 1 :].split('.')
             path_prefix = os.path.join(self.sources_path, *tokens)
         else:
             return None
@@ -43,7 +41,6 @@ class SourceFinder(MetaPathFinder):
 
 
 class VirtualPackageFinder(MetaPathFinder):
-
     def __init__(self, module_root):
         self.module_root = module_root
 

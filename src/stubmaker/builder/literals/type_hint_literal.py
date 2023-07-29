@@ -33,8 +33,13 @@ class TypeHintLiteral(BaseLiteral):
             origin = getattr(self.obj, '__origin__', self.obj)
 
         if origin is Callable and len(args) > 0 and args[0] is not Ellipsis:
-            args = ([self.tree.get_literal(self.tree.create_node_for_object(self.namespace, None, arg))
-                     for arg in args[:-1]], args[-1])
+            args = (
+                [
+                    self.tree.get_literal(self.tree.create_node_for_object(self.namespace, None, arg))
+                    for arg in args[:-1]
+                ],
+                args[-1],
+            )
         elif origin is Union and type(None) in args and len(args) == 2:  # noqa: E721
             origin = Optional
             args = [arg for arg in args if arg is not type(None)]  # noqa: E721
@@ -43,5 +48,6 @@ class TypeHintLiteral(BaseLiteral):
         self.type_hint_origin = self.tree.get_literal_for_reference(
             self.tree.create_node_for_object(self.namespace, None, origin)
         )
-        self.type_hint_args = [self.tree.get_literal(self.tree.create_node_for_object(self.namespace, None, arg))
-                               for arg in args]
+        self.type_hint_args = [
+            self.tree.get_literal(self.tree.create_node_for_object(self.namespace, None, arg)) for arg in args
+        ]

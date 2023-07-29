@@ -17,14 +17,13 @@ from stubmaker.builder.definitions import (
     ModuleDef,
     StaticMethodDef,
     ClassMethodDef,
-    EnumDef
+    EnumDef,
 )
 from stubmaker.builder.literals import ReferenceLiteral, TypeHintLiteral, TypeVarLiteral, ValueLiteral, EnumValueLiteral
 from typing_inspect import is_generic_type
 
 
 class RepresentationsTreeBuilder(BaseRepresentationsTreeBuilder):
-
     DEFAULT_DESCRIBED_OBJECTS = {
         ModuleType: ('types', 'ModuleType'),
         ContextVar: ('contextvars', 'ContextVar'),
@@ -32,7 +31,8 @@ class RepresentationsTreeBuilder(BaseRepresentationsTreeBuilder):
 
     def __init__(
         self,
-        module_name, module,
+        module_name,
+        module,
         module_root=None,
         modules_aliases_mapping=None,
         described_objects=None,
@@ -86,7 +86,9 @@ class RepresentationsTreeBuilder(BaseRepresentationsTreeBuilder):
             module_name = guessed_module and guessed_module.__name__
 
         return Node(
-            namespace, name, obj,
+            namespace,
+            name,
+            obj,
             module_name=self.map_module_name(module_name),
             qualname=qualname or getattr(obj, '__qualname__', None),
         )
@@ -99,7 +101,7 @@ class RepresentationsTreeBuilder(BaseRepresentationsTreeBuilder):
         if not prefixes:
             return module_name
         longest_prefix = max(prefixes)[1]
-        return self.modules_aliases_mapping[longest_prefix] + module_name[len(longest_prefix):]
+        return self.modules_aliases_mapping[longest_prefix] + module_name[len(longest_prefix) :]
 
     def get_definition(self, node: Node):
         """Resolve a node to its definition"""
@@ -125,7 +127,6 @@ class RepresentationsTreeBuilder(BaseRepresentationsTreeBuilder):
         return DocumentationDef(node, self)
 
     def get_class_definition(self, node: Node) -> BaseDefinition:
-
         if node.module_name == self.module_name:
             if issubclass(node.obj, Enum):
                 return EnumDef(node, self)

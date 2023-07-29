@@ -19,6 +19,4 @@ class TypeVarLiteral(BaseLiteral):
         self.contravariant = self.tree.get_literal(
             self.tree.create_node_for_object(self.namespace, None, self.obj.__contravariant__)
         )
-        self.bound = self.tree.get_literal(
-            self.tree.create_node_for_object(self.namespace, None, self.obj.__bound__)
-        )
+        self.bound = self.tree.get_literal(self.tree.create_node_for_object(self.namespace, None, self.obj.__bound__))

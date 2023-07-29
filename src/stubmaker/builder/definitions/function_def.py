@@ -10,7 +10,6 @@ logger = logging.getLogger(__file__)
 
 
 class FunctionDef(BaseDefinition):
-
     def __init__(self, node: Node, tree: BaseRepresentationsTreeBuilder):
         super().__init__(node, tree)
 
@@ -26,7 +25,11 @@ class FunctionDef(BaseDefinition):
         params = []
         for param in signature.parameters.values():
             if param.annotation is not inspect.Parameter.empty:
-                annotation = param.annotation if tree.preserve_forward_references else annotations.get(param.name, param.annotation)
+                annotation = (
+                    param.annotation
+                    if tree.preserve_forward_references
+                    else annotations.get(param.name, param.annotation)
+                )
                 param = param.replace(
                     annotation=tree.get_literal(self.tree.create_node_for_object(self.namespace, None, annotation))
                 )
@@ -38,7 +41,9 @@ class FunctionDef(BaseDefinition):
 
         return_annotation = signature.return_annotation
         if return_annotation is not inspect.Parameter.empty:
-            annotation = return_annotation if tree.preserve_forward_references else annotations.get('return', return_annotation)
+            annotation = (
+                return_annotation if tree.preserve_forward_references else annotations.get('return', return_annotation)
+            )
             return_annotation = tree.get_literal(self.tree.create_node_for_object(self.namespace, None, annotation))
 
         self.signature = signature.replace(parameters=params, return_annotation=return_annotation)

@@ -15,15 +15,19 @@ def main():
     parser.add_argument('--src-root', type=os.path.abspath, required=True, help='Path to source files to process')
     parser.add_argument('--output-dir', type=os.path.abspath, required=True)
     parser.add_argument(
-        '--described-objects', type=os.path.abspath, required=False,
+        '--described-objects',
+        type=os.path.abspath,
+        required=False,
         help='A path to a python file containing a dictionary from python objects to tuples consisting of module and '
-             'qualname for each object (e.g. ModuleType: ("types", "ModuleType")). Such objects\' names and modules '
-             'will not be deduced based on runtime data and provided names and modules will be used instead. Provided '
-             'python file must have DESCRIBED_OBJECTS dictionary on the module level.'
+        'qualname for each object (e.g. ModuleType: ("types", "ModuleType")). Such objects\' names and modules '
+        'will not be deduced based on runtime data and provided names and modules will be used instead. Provided '
+        'python file must have DESCRIBED_OBJECTS dictionary on the module level.',
     )
     parser.add_argument(
-        '--modules-aliases', type=os.path.abspath, required=False,
-        help='Path to module names to aliases mapping in json format.'
+        '--modules-aliases',
+        type=os.path.abspath,
+        required=False,
+        help='Path to module names to aliases mapping in json format.',
     )
     args = parser.parse_args()
 
@@ -66,7 +70,7 @@ def main():
                 module=module,
                 module_root=args.module_root,
                 described_objects=args.described_objects and described_objects,
-                modules_aliases_mapping=args.modules_aliases and modules_aliases_mapping
+                modules_aliases_mapping=args.modules_aliases and modules_aliases_mapping,
             )
 
             viewer = StubViewer()

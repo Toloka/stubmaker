@@ -15,9 +15,10 @@ class FunctionDef(BaseDefinition):
 
         signature = inspect.signature(self.obj)
         if not tree.preserve_forward_references:
+            module = sys.modules.get(self.obj.__module__)
             try:
-                module = sys.modules[self.obj.__module__]
-                annotations = get_type_hints(self.obj, module.__dict__)
+                globalns = None if module is None else module.__dict__
+                annotations = get_type_hints(self.obj, globalns)
             except (NameError, TypeError) as exc:
                 logger.warning(f'Failed to evaluate forward reference for {self.obj}: {exc}')
                 annotations = self.obj.__annotations__

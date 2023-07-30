@@ -11,8 +11,6 @@ from stubmaker.builder.definitions import (
     AttributeAnnotationDef,
     AttributeDef,
     BaseClassDef,
-    ClassDef,
-    MetaclassDef,
     DocumentationDef,
     EnumDef,
     FunctionDef,
@@ -114,7 +112,7 @@ class BasicViewer(ViewerBase):
     def iter_over_attribute_definition(self, attribute_def: AttributeDef):
         yield attribute_def.value
 
-    def iter_over_class_definition(self, class_def: ClassDef):
+    def iter_over_base_class_definition(self, class_def: BaseClassDef):
         if class_def.docstring:
             yield class_def.docstring
 
@@ -122,9 +120,6 @@ class BasicViewer(ViewerBase):
         yield from class_def.bases
         yield from class_def.members.values()
         yield from class_def.annotations.values()
-
-    def iter_over_metaclass_definition(self, metaclass_def: MetaclassDef):
-        yield from self.iter_over_class_definition(metaclass_def)
 
     def iter_over_documentation_definition(self, documentation_def: DocumentationDef):
         yield from ()

@@ -1,7 +1,7 @@
 import builtins
 import inspect
 from collections import defaultdict
-from typing import Dict, Set, Tuple, Optional, Callable, TypeVar, Iterable, Any
+from typing import DefaultDict, Dict, Mapping, Set, Tuple, Optional, Callable, TypeVar, Iterable, Any
 
 from stubmaker.builder.common import (
     Node,
@@ -38,12 +38,13 @@ class ModuleDef(BaseDefinition):
             representation, (TypeHintLiteral, TypeVarLiteral, ReferenceLiteral)
         ) and self._is_import_necessary(representation):
             return representation.module_name
+        return None
 
     def get_imports(
         self, used_object_ids: Set[int], traverse_method: Callable[[BaseRepresentation], Iterable[BaseRepresentation]]
-    ) -> Tuple[Set[str], Dict[str, Set[Tuple[str, Optional[str]]]]]:
+    ) -> Tuple[Set[str], Mapping[str, Set[Tuple[str, Optional[str]]]]]:
         imports = set()
-        from_imports = defaultdict(set)
+        from_imports: DefaultDict[str, Set[Tuple[str, Optional[str]]]] = defaultdict(set)
 
         for curr in traverse_method(self):
             if curr.id in used_object_ids:
@@ -71,6 +72,7 @@ class ModuleDef(BaseDefinition):
                     )
                 import_module = self.get_import_module_for_representation(member_repr)
                 if import_module:
+                    assert member_repr.module_name is not None, 'Module members should have module_name'
                     from_imports[member_repr.module_name].add((member_name, None))
 
         return imports, from_imports
@@ -87,7 +89,7 @@ class ModuleDef(BaseDefinition):
             member_name: member for member_name, member in member_objects.items() if not member_name.startswith('__')
         }
 
-    def _get_members_defined_in_current_module(self, members: Dict[str, BaseRepresentation]):
+    def _get_members_defined_in_current_module(self, members: Mapping[str, BaseRepresentation]):
         local_members = {}
         for member_name, member in members.items():
             if member is None or inspect.ismodule(member.obj):
@@ -107,7 +109,7 @@ class ModuleDef(BaseDefinition):
     def get_members_representations(self) -> Dict[str, BaseRepresentation]:
         member_objects = self.get_public_module_member_objects()
         annotations = get_annotations(self.obj, eval_str=not self.tree.preserve_forward_references)
-        members = {}
+        members: Dict[str, BaseRepresentation] = {}
 
         for member_name in annotations:
             # try to add module level attributes with annotations but without value that are specified in __all__

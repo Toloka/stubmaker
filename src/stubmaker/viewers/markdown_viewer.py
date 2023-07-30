@@ -12,7 +12,7 @@ import re
 from docstring_parser import Docstring
 from markdown_it import MarkdownIt
 from io import StringIO
-from itertools import groupby, chain
+from itertools import groupby, chain, islice
 from typing import Optional, Callable
 
 from stubmaker.viewers.basic_viewer import BasicViewer
@@ -78,7 +78,7 @@ def replace_doctest_with_md_code_block(text: str) -> str:
             seen_codeblock = True
         else:
             if seen_codeblock:
-                lines = list(lines)[1:]
+                lines = islice(lines, 1, None)
             sio.write('\n'.join(lines))
     return sio.getvalue()
 
@@ -96,7 +96,7 @@ class MarkdownViewer(BasicViewer):
     _ATTRIBUTES_TABLE = """| Parameters | Type | Description |
 | :----------| :----| :-----------|\n"""
 
-    def __init__(self, source_link_finder: Callable[[BaseDefinition], str] = None):
+    def __init__(self, source_link_finder: Optional[Callable[[BaseDefinition], str]] = None):
         self.source_link_finder = source_link_finder
 
     def is_markdown_needed_for_function(self, function_def: FunctionDef):
@@ -167,7 +167,7 @@ class MarkdownViewer(BasicViewer):
         class_doc_sio = StringIO()
 
         if '__init__' in class_def.members:
-            init_member = class_def.members['__init__']
+            init_member = class_def.init_method
             init_markdown_signature = self.get_definition_markdown_signature(init_member)
             class_doc_sio.write(f'```python\n{class_def.name}{init_markdown_signature}\n```\n\n')
 
@@ -198,8 +198,7 @@ class MarkdownViewer(BasicViewer):
                         )
 
                     elif param.args[0] == 'param':
-                        init_member = class_def.members['__init__']
-                        parameter = init_member.get_parameter(param.arg_name)
+                        parameter = class_def.init_method.get_parameter(param.arg_name)
                         annotation = parameter and parameter.annotation
                         str_annotation = self.add_markdown_crosslinks(annotation)
 
@@ -296,16 +295,16 @@ class MarkdownViewer(BasicViewer):
             if parsed_docstring.params:
                 sio.write('## Parameters Description\n\n')
                 sio.write(self._ATTRIBUTES_TABLE)
-                for param in parsed_docstring.params:
-                    annotation = (
-                        function_def.signature.parameters.get(param.arg_name)
-                        and signature.parameters[param.arg_name].annotation
-                    )
-                    str_annotation = self.add_markdown_crosslinks(annotation)
+                for docstring_param in parsed_docstring.params:
+                    signature_param = signature.parameters.get(docstring_param.arg_name)
+                    if signature_param:
+                        param_type_description = self.add_markdown_crosslinks(signature_param.annotation)
+                    else:
+                        param_type_description = '-'
 
                     sio.write(
-                        f'`{param.arg_name}`|**{str_annotation or "-"}**|'
-                        f'{parameter_html_description(param.description)}\n'
+                        f'`{docstring_param.arg_name}`|**{param_type_description}**|'
+                        f'{parameter_html_description(docstring_param.description)}\n'
                     )
 
             if parsed_docstring.returns:

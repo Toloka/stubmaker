@@ -2,15 +2,16 @@ __all__ = [
     'StubViewer',
 ]
 import inspect
-import os
+import sys
 from io import StringIO
-from typing import Dict, Tuple, Optional, Set, List
+from typing import Dict, Iterable, Mapping, Tuple, Optional, Set, List
 
+from stubmaker.builder.common import BaseDefinition
 from stubmaker.builder.definitions import (
     AttributeAnnotationDef,
     AttributeDef,
+    BaseClassDef,
     ClassDef,
-    MetaclassDef,
     DocumentationDef,
     EnumDef,
     FunctionDef,
@@ -32,19 +33,29 @@ from stubmaker.viewers.util import (
 @add_inherited_singledispatchmethod(method_name='iter_over', implementation_prefix='iter_over')
 @add_inherited_singledispatchmethod(method_name='view', implementation_prefix='view_')
 class StubViewer(BasicViewer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._module_context: Optional['StubViewer.ModuleContext'] = None
+
     class ModuleContext:
         def __init__(self, module_def: ModuleDef, viewer: 'StubViewer'):
             self.module_def = module_def
             self.viewer = viewer
-            self.object_id_to_definition = {}
+            self.object_id_to_definition: Dict[str, BaseDefinition] = {}
 
         def __enter__(self):
-            self.viewer.module_context = self
+            self.viewer._module_context = self
             return self
 
         def __exit__(self, exc_type, exc_val, exc_tb):
-            self.viewer.module_context = None
+            self.viewer._module_context = None
             self.object_id_to_definition.clear()
+
+    @property
+    def module_context(self) -> ModuleContext:
+        if self._module_context is None:
+            raise RuntimeError(f'{inspect.stack()[1].function} is called outside of ModuleContext')
+        return self._module_context
 
     def view_reference_literal(self, reference_lit: ReferenceLiteral):
         view = super().view_reference_literal(reference_lit)
@@ -65,7 +76,7 @@ class StubViewer(BasicViewer):
             return definition.namespace[len(prefix) :] + definition.name
 
         # consider TypeVar being imported from other module
-        imported_from_module = os.sys.modules[type_var_lit.obj.__module__]
+        imported_from_module = sys.modules[type_var_lit.obj.__module__]
         name = next(obj_name for obj_name, obj in imported_from_module.__dict__.items() if obj == type_var_lit.obj)
         import_module = self.module_context.module_def.get_import_module_for_representation(type_var_lit)
         if not import_module:
@@ -84,7 +95,7 @@ class StubViewer(BasicViewer):
         has_unimplemeted_abstract_methods = any(getattr(class_def.obj, '__abstractmethods__', []))
         return not metaclass_is_type and not metaclass_is_inherited or has_unimplemeted_abstract_methods
 
-    def view_class_definition(self, class_def: ClassDef):
+    def view_base_class_definition(self, class_def: BaseClassDef):
         sio = StringIO()
 
         sio.write(f'class {class_def.name}')
@@ -117,9 +128,6 @@ class StubViewer(BasicViewer):
         if not sio.getvalue().endswith('\n\n'):
             sio.write('\n')
         return sio.getvalue()
-
-    def view_metaclass_definition(self, metaclass_def: MetaclassDef):
-        return self.view_class_definition(metaclass_def)
 
     def view_documentation_definition(self, documentation_def: DocumentationDef):
         return f'"""{inspect.cleandoc(documentation_def.obj).rstrip()}\n"""\n'
@@ -203,7 +211,7 @@ class StubViewer(BasicViewer):
 
         return sio.getvalue().rstrip('\n') + '\n'
 
-    def _write_from_imports_section(self, from_imports: Dict[str, Set[Tuple[str, Optional[str]]]], sio: StringIO):
+    def _write_from_imports_section(self, from_imports: Mapping[str, Set[Tuple[str, Optional[str]]]], sio: StringIO):
         if from_imports:
             for key in sorted(from_imports.keys()):
                 self._write_from_import(key, sorted(from_imports[key], key=lambda x: x[0]), sio)
@@ -211,13 +219,13 @@ class StubViewer(BasicViewer):
 
     def _write_from_import(self, module_name: str, names: List[Tuple[str, Optional[str]]], sio: StringIO):
         if len(names) > 1:
-            names = ',\n'.join(f'{name} as {import_as}' if import_as else name for name, import_as in names)
-            sio.write(f'from {module_name} import (\n{indent(names)},\n)\n')
+            names_str = ',\n'.join(f'{name} as {import_as}' if import_as else name for name, import_as in names)
+            sio.write(f'from {module_name} import (\n{indent(names_str)},\n)\n')
         else:
-            names = ', '.join(f'{name} as {import_as}' if import_as else name for name, import_as in names)
-            sio.write(f'from {module_name} import {names}\n')
+            names_str = ', '.join(f'{name} as {import_as}' if import_as else name for name, import_as in names)
+            sio.write(f'from {module_name} import {names_str}\n')
 
-    def _write_imports_section(self, imports: List[str], sio: StringIO):
+    def _write_imports_section(self, imports: Iterable[str], sio: StringIO):
         if imports:
             for name in sorted(imports):
                 self._write_import(name, sio)

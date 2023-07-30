@@ -16,6 +16,7 @@ class TypeHintLiteral(BaseLiteral):
 
         # typing.get_args works with Callable[[], int] but does not work with
         # Callable in Python 3.8. So __args__ seems more reliable
+        args: typing.Sequence
         if not is_special:
             args = getattr(self.obj, '__args__', ())
         else:

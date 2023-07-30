@@ -1,9 +1,10 @@
 import inspect
-import typing
 from abc import abstractmethod
+from typing import TypeVar, cast
 
-from stubmaker.builder.common import Node, BaseRepresentationsTreeBuilder, BaseDefinition, get_annotations
-from typing_inspect import is_generic_type, get_generic_bases
+from stubmaker.builder.common import BaseDefinition, BaseRepresentationsTreeBuilder, Node, get_annotations
+from stubmaker.builder.definitions.function_def import FunctionDef
+from typing_inspect import get_generic_bases, is_generic_type
 
 
 def _try_patch_pydantic_init_signature(cls):
@@ -13,7 +14,7 @@ def _try_patch_pydantic_init_signature(cls):
     """
 
     try:
-        from pydantic import BaseModel
+        from pydantic import BaseModel  # type: ignore
 
         if issubclass(cls, BaseModel):
             parameters = cls.__signature__.parameters.values()
@@ -68,7 +69,7 @@ class BaseClassDef(BaseDefinition):
                 definition = self.tree.get_function_definition(member_node_factory(member))
             elif inspect.isclass(member) and member.__module__ == self.tree.module_name:
                 definition = self.tree.get_class_definition(member_node_factory(member))
-            elif isinstance(member, typing.TypeVar):
+            elif isinstance(member, TypeVar):
                 definition = self.tree.get_attribute_definition(member_node_factory(member))
             else:
                 continue
@@ -85,6 +86,10 @@ class BaseClassDef(BaseDefinition):
                     obj=annotations[member_name],
                 )
             )
+
+    @property
+    def init_method(self) -> FunctionDef:
+        return cast(FunctionDef, self.members['__init__'])
 
     def get_public_member_names(self):
         cls = self.obj

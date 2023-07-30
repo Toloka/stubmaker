@@ -17,8 +17,8 @@ def _split_str_signature_by_params(signature: inspect.Signature) -> Tuple[str, L
     last_param_end = 0
     prefix = ''
 
-    for param_str in signature.parameters.values():
-        param_str = str(param_str)
+    for param in signature.parameters.values():
+        param_str = str(param)
         param_start = signature_str.find(param_str, last_param_end)
         current_prefix = signature_str[last_param_end:param_start]
         last_param_end = param_start + len(param_str)

@@ -2,7 +2,7 @@ import inspect
 from typing import Optional, get_type_hints, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from stubmaker.builder.representations_tree_builder import RepresentationsTreeBuilder
+    from stubmaker.builder.definitions import AttributeAnnotationDef, DocumentationDef
 
 
 class Node:
@@ -23,7 +23,7 @@ class Node:
         name: Optional[str],
         obj,
         module_name: Optional[str],
-        qualname: Optional[str],
+        qualname: str,
     ):
         self.namespace = namespace
         self.name = name
@@ -37,7 +37,7 @@ class Node:
 
 
 class BaseRepresentation:
-    def __init__(self, node: Node, tree: 'RepresentationsTreeBuilder'):
+    def __init__(self, node: Node, tree: 'BaseRepresentationsTreeBuilder'):
         self.node = node
         self.tree = tree
 
@@ -62,7 +62,7 @@ class BaseRepresentation:
         return self.node.full_name
 
     @property
-    def module_name(self) -> str:
+    def module_name(self) -> Optional[str]:
         return self.node.module_name
 
     @property
@@ -83,13 +83,16 @@ class BaseDefinition(BaseRepresentation):
         )
 
     @property
-    def docstring(self) -> Optional['BaseDefinition']:
+    def docstring(self) -> Optional['DocumentationDef']:
         if getattr(self.obj, '__doc__') is not None:
             return self.tree.get_documentation_definition(self.get_node_for_member('__doc__'))
         return None
 
 
 class BaseRepresentationsTreeBuilder:
+    module_name: str
+    preserve_forward_references: bool
+
     # Helper methods
 
     def create_node_for_object(self, namespace, name, obj) -> Node:
@@ -103,13 +106,22 @@ class BaseRepresentationsTreeBuilder:
     def get_attribute_definition(self, node: Node) -> BaseDefinition:
         raise NotImplementedError
 
-    def get_documentation_definition(self, node: Node) -> BaseDefinition:
+    def get_attribute_annotation_definition(self, node: Node) -> 'AttributeAnnotationDef':
+        raise NotImplementedError
+
+    def get_documentation_definition(self, node: Node) -> 'DocumentationDef':
         raise NotImplementedError
 
     def get_class_definition(self, node: Node) -> BaseDefinition:
         raise NotImplementedError
 
     def get_function_definition(self, node: Node) -> BaseDefinition:
+        raise NotImplementedError
+
+    def get_static_method_definition(self, node: Node) -> BaseDefinition:
+        raise NotImplementedError
+
+    def get_class_method_definition(self, node: Node) -> BaseDefinition:
         raise NotImplementedError
 
     def get_module_definition(self, node: Node) -> BaseDefinition:

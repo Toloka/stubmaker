@@ -114,15 +114,15 @@ class RepresentationsTreeBuilder(BaseRepresentationsTreeBuilder):
 
         return self.get_attribute_definition(node)
 
-    def get_attribute_definition(self, node: Node) -> BaseDefinition:
+    def get_attribute_definition(self, node: Node) -> AttributeDef:
         """Get a definition representing `name = literal`"""
         return AttributeDef(node, self)
 
-    def get_attribute_annotation_definition(self, node: Node) -> BaseDefinition:
+    def get_attribute_annotation_definition(self, node: Node) -> AttributeAnnotationDef:
         """Get a definition representing `name: literal`"""
         return AttributeAnnotationDef(node, self)
 
-    def get_documentation_definition(self, node: Node) -> BaseDefinition:
+    def get_documentation_definition(self, node: Node) -> DocumentationDef:
         """Get a definition representing docstring"""
         return DocumentationDef(node, self)
 

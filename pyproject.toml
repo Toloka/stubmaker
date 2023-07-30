@@ -27,6 +27,12 @@ inline-quotes = 'single'
 line-length = 120
 skip-string-normalization = true
 
+[[tool.mypy.overrides]]
+module = [
+    "typing_inspect.*",
+]
+ignore_missing_imports = true
+
 [build-system]
 requires = ['setuptools', 'wheel']
 build-backend = 'setuptools.build_meta'

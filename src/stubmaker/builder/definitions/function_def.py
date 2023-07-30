@@ -1,7 +1,7 @@
 import inspect
 import logging
 import sys
-from typing import get_type_hints
+from typing import Optional, get_type_hints
 
 from stubmaker.builder.common import BaseDefinition, Node, BaseRepresentationsTreeBuilder
 
@@ -15,9 +15,9 @@ class FunctionDef(BaseDefinition):
 
         signature = inspect.signature(self.obj)
         if not tree.preserve_forward_references:
-            module = sys.modules.get(self.obj.__module__)
             try:
-                annotations = get_type_hints(self.obj, module and module.__dict__)
+                module = sys.modules[self.obj.__module__]
+                annotations = get_type_hints(self.obj, module.__dict__)
             except (NameError, TypeError) as exc:
                 logger.warning(f'Failed to evaluate forward reference for {self.obj}: {exc}')
                 annotations = self.obj.__annotations__
@@ -49,7 +49,7 @@ class FunctionDef(BaseDefinition):
         self.signature = signature.replace(parameters=params, return_annotation=return_annotation)
         self.is_async = inspect.iscoroutinefunction(self.obj)
 
-    def get_parameter(self, arg_name: str) -> inspect.Parameter:
+    def get_parameter(self, arg_name: str) -> Optional[inspect.Parameter]:
         return self.signature.parameters.get(arg_name)
 
 

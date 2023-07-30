@@ -7,7 +7,7 @@ from importlib.machinery import ModuleSpec
 from importlib.util import resolve_name, spec_from_file_location
 from pkgutil import walk_packages
 
-from _frozen_importlib_external import _NamespaceLoader
+from _frozen_importlib_external import _NamespaceLoader  # type: ignore
 
 
 class SourceFinder(MetaPathFinder):

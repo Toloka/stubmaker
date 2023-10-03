@@ -4,7 +4,7 @@ authors = [
     { name = 'Vladimir Losev', email = 'losev@yandex-team.ru' },
 ]
 description = 'Tool for generating python stubs'
-version = '0.0.3'
+version = '0.1.0'
 readme = 'README.md'
 requires-python = '>=3.7.4, <3.12'
 dependencies = [

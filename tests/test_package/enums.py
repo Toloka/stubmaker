@@ -76,3 +76,18 @@ class ClassWithNestedEnum:
     # enum_value default value should appear as NestedEnum.VALUE but not ClassWithNestedEnum.NestedEnum.VALUE
     def __init__(self, enum_value = NestedEnum.VALUE):
         pass
+
+
+# quick hack to make tests have same results both on python >=3.11 and <3.11
+PRE_311_ENUM_DEFAULT_DOCSTRING = '''\
+An enumeration.
+'''
+
+EnumClass.__doc__ = PRE_311_ENUM_DEFAULT_DOCSTRING
+UniqueEnum.__doc__ = PRE_311_ENUM_DEFAULT_DOCSTRING
+FunctionalEnum.__doc__ = PRE_311_ENUM_DEFAULT_DOCSTRING
+EnumSubclassClass.__doc__ = PRE_311_ENUM_DEFAULT_DOCSTRING
+EnumSubclass.__doc__ = PRE_311_ENUM_DEFAULT_DOCSTRING
+AutoEnum.__doc__ = PRE_311_ENUM_DEFAULT_DOCSTRING
+IntEnumClass.__doc__ = PRE_311_ENUM_DEFAULT_DOCSTRING
+ClassWithNestedEnum.NestedEnum.__doc__ = PRE_311_ENUM_DEFAULT_DOCSTRING

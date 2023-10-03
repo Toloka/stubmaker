@@ -6,7 +6,7 @@ authors = [
 description = 'Tool for generating python stubs'
 version = '0.0.3'
 readme = 'README.md'
-requires-python = '>=3.7.4, <3.11'
+requires-python = '>=3.7.4, <3.12'
 dependencies = [
     'docstring-parser',
     'typing_inspect',
